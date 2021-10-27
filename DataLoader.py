@@ -1,9 +1,5 @@
-import matplotlib.pyplot as plt
 from torchvision.io import read_image
 import os
-
-IMAGE_FOLDER_PATH = '/Users/michaelshepherd/Documents/University/Project Module/CelebAMask-HQ/CelebA-HQ-img'
-FEATURES_FOLDER_PATH = '/Users/michaelshepherd/Documents/University/Project Module/CelebAMask-HQ/CelebAMask-HQ-mask-anno'
 
 class ImageDataset:
   ''' Constructor for the ImageDataset class
@@ -28,11 +24,3 @@ class ImageDataset:
       if(os.path.isfile(map_path)): #Check map file exists since not all image indexes contain all map options
         image_list.append(read_image(map_path))
     return image_list
-
-
-if __name__ == '__main__':
-  dataset = ImageDataset(IMAGE_FOLDER_PATH, FEATURES_FOLDER_PATH)
-  _, plot_array = plt.subplots(1, 12)
-  for img_idx in range(len(dataset[20000])):
-    plot_array[img_idx].imshow(dataset[20000][img_idx].permute(1, 2, 0))
-  plt.show()
