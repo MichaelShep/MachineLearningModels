@@ -3,6 +3,25 @@ import torch.nn as nn
 import torch
 import os.path
 import sys
+import matplotlib.pyplot as plt
+
+def extract_element_from_sublist(main_list, index):
+  return [item[index] for item in main_list]
+
+def display_outputs(input_tensor, output):
+  fig = plt.figure('Output Channels', figsize=(20, 1))
+
+  fig.add_subplot(1, len(output) + 1, 1)
+  plt.imshow(input_tensor.permute(1, 2, 0))
+  plt.axis('off')
+
+  for i in range(1, len(output) + 1):
+    fig.add_subplot(1, len(output) + 1, i + 1)
+    plt.imshow(output[i - 1])
+    plt.axis('off')
+
+  plt.tight_layout()
+  plt.show()
 
 ''' Class defining the Segmentation Network
     All the layers of the network are setup here and the flow through the network is also defined
@@ -30,14 +49,15 @@ if __name__ == '__main__':
   dataset_directory = os.path.join(os.path.split(current_directory)[0], 'CelebAMask-HQ')
   image_directory = os.path.join(dataset_directory, 'CelebA-HQ-img')
   features_directory = os.path.join(dataset_directory, 'CelebAMask-HQ-mask-anno')
-  print('Image Directory:', image_directory)
 
   dataset = ImageDataset(image_directory, features_directory)
-  train_data = dataset.load_data(0, 1)
-  print(train_data[0][0].shape)
+  train_data = dataset.load_data(1, 1)
 
-  #network = SegmentationNetwork()
-  #print('Running single image through network')
-  #output = network(train_data)
-  #print('Network has finished running')
-  #print(output)
+  train_data_input = torch.stack(extract_element_from_sublist(train_data, 0))
+  train_data_output = torch.stack(extract_element_from_sublist(train_data, 1))
+
+  network = SegmentationNetwork()
+  output = network(train_data_input)
+  print(output)
+
+  display_outputs(train_data_input[0], output.detach()[0])

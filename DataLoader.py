@@ -18,7 +18,7 @@ class ImageDataset:
   def load_data(self, start_index, end_index):
     # Initialize tensor with all 1's
     output_list = []
-    for i in range(0, end_index + 1):
+    for i in range(start_index, end_index + 1):
       image_tensor = self._tensor_transform(Image.open(os.path.join(self._img_dir, str(i) + '.jpg')))
       #Need to get the correct map folder
       map_folder = str(int(i / self._ITEMS_PER_MAP_FOLDER))
