@@ -1,11 +1,8 @@
 from DataLoader import ImageDataset
 import torch.nn as nn
-import torchvision
 import torch
-
-IMAGE_FOLDER_PATH = '/Users/michaelshepherd/Documents/University/Project Module/CelebAMask-HQ/CelebA-HQ-img'
-FEATURES_FOLDER_PATH = '/Users/michaelshepherd/Documents/University/Project Module/CelebAMask-HQ/CelebAMask-HQ-mask-anno'
-IMAGE_SIZE = 1048576 #Size of all the images in the CelebA Dataset
+import os.path
+import sys
 
 ''' Class defining the Segmentation Network
     All the layers of the network are setup here and the flow through the network is also defined
@@ -17,18 +14,30 @@ class SegmentationNetwork(nn.Module):
   def __init__(self):
     super(SegmentationNetwork, self).__init__()
 
-    self.conv1 = nn.Linear(IMAGE_SIZE, 128)
+    #Create the layers for the network
+    #First Conv layer - RGB image input so 3 channels, 3x3 kernal and padding 1 to keep same image size
+    self.conv1 = nn.Conv2d(in_channels=3, out_channels=16, kernel_size=3, stride=1, padding=1)
 
   ''' Performs a forward pass through the network for some data
       Method should not be called directly as only gets called as part of the lifecycle of the network
   '''
   def forward(self, x):
-    x = torch.flatten(x)
     x = self.conv1(x)
     return x
 
 if __name__ == '__main__':
-  dataset = ImageDataset(IMAGE_FOLDER_PATH, FEATURES_FOLDER_PATH)
-  network = SegmentationNetwork()
-  output = network(dataset[0][0][0].to(None, dtype=torch.float32))
-  print(output)
+  current_directory = sys.path[0]
+  dataset_directory = os.path.join(os.path.split(current_directory)[0], 'CelebAMask-HQ')
+  image_directory = os.path.join(dataset_directory, 'CelebA-HQ-img')
+  features_directory = os.path.join(dataset_directory, 'CelebAMask-HQ-mask-anno')
+  print('Image Directory:', image_directory)
+
+  dataset = ImageDataset(image_directory, features_directory)
+  train_data = dataset.load_data(0, 1)
+  print(train_data[0][0].shape)
+
+  #network = SegmentationNetwork()
+  #print('Running single image through network')
+  #output = network(train_data)
+  #print('Network has finished running')
+  #print(output)
