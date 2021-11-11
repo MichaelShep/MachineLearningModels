@@ -58,6 +58,5 @@ if __name__ == '__main__':
 
   network = SegmentationNetwork()
   output = network(train_data_input)
-  print(output)
 
   display_outputs(train_data_input[0], output.detach()[0])
