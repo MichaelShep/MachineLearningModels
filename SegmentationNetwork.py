@@ -4,11 +4,16 @@ import torch
 import os.path
 import sys
 import matplotlib.pyplot as plt
+from typing import List
 
-def extract_element_from_sublist(main_list, index):
+''' Takes a 2D list and returns a 1D list with a specific index extracted from each sublist
+'''
+def extract_element_from_sublist(main_list: List[torch.Tensor], index: int) -> List[torch.Tensor]:
   return [item[index] for item in main_list]
 
-def display_outputs(input_tensor, output):
+''' Creates and display a matplotlib display displaying all the output maps created for an image
+'''
+def display_outputs(input_tensor: torch.Tensor, output: str) -> None:
   fig = plt.figure('Output Channels', figsize=(20, 1))
 
   fig.add_subplot(1, len(output) + 1, 1)
@@ -34,13 +39,12 @@ class SegmentationNetwork(nn.Module):
     super(SegmentationNetwork, self).__init__()
 
     #Create the layers for the network
-    #First Conv layer - RGB image input so 3 channels, 3x3 kernal and padding 1 to keep same image size
     self.conv1 = nn.Conv2d(in_channels=3, out_channels=16, kernel_size=3, stride=1, padding=1)
 
   ''' Performs a forward pass through the network for some data
       Method should not be called directly as only gets called as part of the lifecycle of the network
   '''
-  def forward(self, x):
+  def forward(self, x: torch.Tensor) -> torch.Tensor:
     x = self.conv1(x)
     return x
 

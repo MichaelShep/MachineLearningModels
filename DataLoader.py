@@ -2,6 +2,7 @@ import os
 import torch
 from torchvision import transforms
 from PIL import Image
+from typing import List, Tuple
 
 #For now, just loading the hair image as the output and the original face as the input - change in future
 
@@ -9,13 +10,13 @@ class ImageDataset:
   ''' Constructor for the ImageDataset class
   Takes the location of all the images as well as all the maps used in the dataset - sets up all private properties for the object
   '''
-  def __init__(self, img_dir, feature_map_dir):
+  def __init__(self, img_dir: str, feature_map_dir: str):
     self._ITEMS_PER_MAP_FOLDER = 2000
     self._img_dir = img_dir
     self._feature_map_dir = feature_map_dir
     self._tensor_transform = transforms.ToTensor()
 
-  def load_data(self, start_index, end_index):
+  def load_data(self, start_index: int, end_index: int) -> List[Tuple[torch.Tensor, torch.Tensor]]:
     # Initialize tensor with all 1's
     output_list = []
     for i in range(start_index, end_index + 1):
