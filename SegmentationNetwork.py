@@ -1,33 +1,7 @@
-from DataLoader import ImageDataset
+''' Creates the Face Segmentation CNN '''
+
 import torch.nn as nn
 import torch
-import os.path
-import sys
-import matplotlib.pyplot as plt
-from typing import List
-
-''' Takes a 2D list and returns a 1D list with a specific index extracted from each sublist
-'''
-def extract_element_from_sublist(main_list: List[torch.Tensor], index: int) -> List[torch.Tensor]:
-  return [item[index] for item in main_list]
-
-''' Creates and display a matplotlib display displaying some of the output maps created for an image
-'''
-def display_outputs(input_tensor: torch.Tensor, output: str) -> None:
-  num_outputs_to_display = len(output) if len(output) < 10 else 10
-  fig = plt.figure('Output Channels', figsize=(20, 1))
-
-  fig.add_subplot(1, num_outputs_to_display + 1, 1)
-  plt.imshow(input_tensor.permute(1, 2, 0))
-  plt.axis('off')
-
-  for i in range(1, num_outputs_to_display + 1):
-    fig.add_subplot(1, num_outputs_to_display + 1, i + 1)
-    plt.imshow(output[i - 1])
-    plt.axis('off')
-
-  plt.tight_layout()
-  plt.show()
 
 ''' Class defining the Segmentation Network
     All the layers of the network are setup here and the flow through the network is also defined
@@ -148,22 +122,3 @@ class SegmentationNetwork(nn.Module):
     x = self._perform_expanding_path(x)
 
     return x
-
-if __name__ == '__main__':
-  current_directory = sys.path[0]
-  dataset_directory = os.path.join(os.path.split(current_directory)[0], 'CelebAMask-HQ')
-  image_directory = os.path.join(dataset_directory, 'CelebA-HQ-img')
-  features_directory = os.path.join(dataset_directory, 'CelebAMask-HQ-mask-anno')
-
-  #Note: Images in this dataset are 1024 x 1024
-  dataset = ImageDataset(image_directory, features_directory)
-  train_data = dataset.load_data(1, 1)
-
-  train_data_input = torch.stack(extract_element_from_sublist(train_data, 0))
-  train_data_output = torch.stack(extract_element_from_sublist(train_data, 1))
-
-  network = SegmentationNetwork()
-  output = network(train_data_input)
-
-  print('Output Shape:', output.shape)
-  display_outputs(train_data_input[0], output.detach()[0])

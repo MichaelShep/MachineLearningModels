@@ -1,3 +1,5 @@
+''' Loads all our data from the CelebAHQ Dataset and formats it ready for use with Pytorch '''
+
 import os
 import torch
 from torchvision import transforms
