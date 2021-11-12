@@ -112,6 +112,8 @@ class SegmentationNetwork(nn.Module):
 
     x = self.conv641(x) #64 input channels, 1 output channel, 512x512 tensor size
 
+    x = self.relu(x)
+
     return x
 
   ''' Performs a forward pass through the network for some data
