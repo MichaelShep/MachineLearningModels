@@ -2,8 +2,8 @@
 
 import os
 import torch
-from torchvision import transforms
-from PIL import Image
+from torchvision import transforms # type: ignore
+from PIL import Image # type: ignore
 from typing import List, Tuple
 
 #For now, just loading the hair image as the output and the original face as the input - change in future
