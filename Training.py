@@ -10,7 +10,7 @@ from tqdm import tqdm
 
 class Training():
     _MINI_BATCH_SIZE = 1
-    _NUM_EPOCHS = 2
+    _NUM_EPOCHS = 1
 
     def __init__(self, model: SegmentationNetwork, training_data: List[Tuple[torch.Tensor, torch.Tensor]]):
         self._model = model

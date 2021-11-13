@@ -15,12 +15,12 @@ if __name__ == '__main__':
 
     #Note: Images in this dataset are 1024 x 1024
     dataset = ImageDataset(image_directory, features_directory)
-    train_data = dataset.load_data(0, 0)
+    dataset.load_data()
+    print(dataset[4888])
 
-    model = SegmentationNetwork()
-    model_training = Training(model, train_data)
+    #model = SegmentationNetwork()
+    #model_training = Training(model, train_data)
 
-    output = model_training.train()
+    #output = model_training.train()
 
-    print('Output Shape:', output.shape)
-    Helper.display_outputs(output.detach()[0])
+    #Helper.display_outputs(output.detach()[0])s
