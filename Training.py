@@ -3,29 +3,32 @@
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
-from Helper import extract_element_from_sublist
-from typing import List, Tuple
 from SegmentationNetwork import SegmentationNetwork
-from tqdm import tqdm
+from DataSet import ImageDataset
 
 class Training():
-    _MINI_BATCH_SIZE = 1
-    _NUM_EPOCHS = 1
+  _MINI_BATCH_SIZE = 50
+  _NUM_EPOCHS = 1
+  _NUM_TRAINING_EXAMPLES = 20000
 
-    def __init__(self, model: SegmentationNetwork, training_data: List[Tuple[torch.Tensor, torch.Tensor]]):
-        self._model = model
-        self._input_data = torch.stack(extract_element_from_sublist(training_data, 0))
-        self._output_data = torch.stack(extract_element_from_sublist(training_data, 1))
+  ''' Splits the data into training and testing data and sets up data loader so data can be dealt with in
+      batches
+  '''
+  def __init__(self, model: SegmentationNetwork, dataset: ImageDataset):
+    self._model = model
+    self._training_examples, self._testing_examples = dataset.get_train_test_split(self._NUM_TRAINING_EXAMPLES)
 
-        #Put the data into a DataLoader so that we can use shuffled random batches for better training
-        self._data_loader = DataLoader(training_data, batch_size=self._MINI_BATCH_SIZE, shuffle=True, num_workers=1)
-        #Use Stochastic Gradient Descent as our optimization method with a Learning Rate of 0.1
-        self._optimizer = torch.optim.SGD(self._model.parameters(), lr=0.1)
+    self._training_loader = DataLoader(self._training_examples, batch_size=self._MINI_BATCH_SIZE, shuffle=True, num_workers=1)
+    self._testing_loader = DataLoader(self._testing_examples, batch_size=self._MINI_BATCH_SIZE, shuffle=False, num_workers=1)
 
-        #Using Pixel-Wise Cross Entropy Loss as our loss function
-        self._loss_func = nn.CrossEntropyLoss()
+  ''' Performs the actual training using our training data and model
+  '''
+  def train(self) -> None:
+    for _ in range(self._NUM_EPOCHS):
+      for i, (input_image_indexes, output_map_locations) in enumerate(self._training_loader):
+        print('Batch', i, 'Indexes:', input_image_indexes)
 
-    def train(self) -> torch.Tensor:
+  '''  def train(self) -> torch.Tensor:
         model_output = self._model(self._input_data)
 
         for epoch in range(self._NUM_EPOCHS):
@@ -39,4 +42,4 @@ class Training():
                 print('Epoch:', epoch, 'Loss:', loss)
 
 
-        return model_output
+        return model_output'''
