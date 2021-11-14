@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 from SegmentationNetwork import SegmentationNetwork
-from DataSet import ImageDataset
+from CelebADataset import CelebADataset
 
 class Training():
   _MINI_BATCH_SIZE = 50
@@ -14,19 +14,29 @@ class Training():
   ''' Splits the data into training and testing data and sets up data loader so data can be dealt with in
       batches
   '''
-  def __init__(self, model: SegmentationNetwork, dataset: ImageDataset):
+  def __init__(self, model: SegmentationNetwork, dataset: CelebADataset):
     self._model = model
+    self._dataset = dataset
     self._training_examples, self._testing_examples = dataset.get_train_test_split(self._NUM_TRAINING_EXAMPLES)
 
     self._training_loader = DataLoader(self._training_examples, batch_size=self._MINI_BATCH_SIZE, shuffle=True, num_workers=1)
     self._testing_loader = DataLoader(self._testing_examples, batch_size=self._MINI_BATCH_SIZE, shuffle=False, num_workers=1)
 
+  def _get_data_for_indexes(self, indexes: torch.Tensor):
+    output_data = []
+    for index_tensor in indexes:
+      output_data.append(self._dataset[index_tensor.item()])
+
+    print(output_data)
+
+
   ''' Performs the actual training using our training data and model
   '''
   def train(self) -> None:
     for _ in range(self._NUM_EPOCHS):
-      for i, (input_image_indexes, output_map_locations) in enumerate(self._training_loader):
-        print('Batch', i, 'Indexes:', input_image_indexes)
+      for i, data_indexes in enumerate(self._training_loader):
+        if i == 0:
+          self._get_data_for_indexes(data_indexes)
 
   '''  def train(self) -> torch.Tensor:
         model_output = self._model(self._input_data)

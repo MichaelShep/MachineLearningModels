@@ -2,7 +2,7 @@
 
 import sys
 import os.path
-from DataSet import ImageDataset
+from CelebADataset import CelebADataset
 from SegmentationNetwork import SegmentationNetwork
 from Training import Training
 
@@ -16,7 +16,7 @@ if __name__ == '__main__':
     features_directory = os.path.join(dataset_directory, 'CelebAMask-HQ-mask-anno')
 
     #Load all image and map data and split it randomly into testing and training data
-    dataset = ImageDataset(image_directory, features_directory)
+    dataset = CelebADataset(image_directory, features_directory)
     model = SegmentationNetwork()
     model_training = Training(model, dataset)
     model_training.train()
