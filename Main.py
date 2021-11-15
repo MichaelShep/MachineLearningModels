@@ -7,9 +7,6 @@ from SegmentationNetwork import SegmentationNetwork
 from Training import Training
 
 if __name__ == '__main__':
-    NUM_TRAINING_EXAMPLES = 50
-    MINI_BATCH_SIZE = 1
-
     current_directory = sys.path[0]
     dataset_directory = os.path.join(os.path.split(current_directory)[0], 'CelebAMask-HQ')
     image_directory = os.path.join(dataset_directory, 'CelebA-HQ-img')

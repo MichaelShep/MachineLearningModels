@@ -5,9 +5,11 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 from SegmentationNetwork import SegmentationNetwork
 from CelebADataset import CelebADataset
+from typing import Tuple
+from Helper import plot_predicted_and_actual
 
 class Training():
-  _MINI_BATCH_SIZE = 50
+  _MINI_BATCH_SIZE = 1
   _NUM_EPOCHS = 1
   _NUM_TRAINING_EXAMPLES = 20000
 
@@ -22,12 +24,22 @@ class Training():
     self._training_loader = DataLoader(self._training_examples, batch_size=self._MINI_BATCH_SIZE, shuffle=True, num_workers=1)
     self._testing_loader = DataLoader(self._testing_examples, batch_size=self._MINI_BATCH_SIZE, shuffle=False, num_workers=1)
 
-  def _get_data_for_indexes(self, indexes: torch.Tensor):
-    output_data = []
-    for index_tensor in indexes:
-      output_data.append(self._dataset[index_tensor.item()])
+    #Using Per Pixel Cross Entropy Loss for our loss and Stochastic Gradient Descent for our optimiser
+    self._loss_func = nn.CrossEntropyLoss(reduction='none')
+    self._optim = torch.optim.SGD(self._model.parameters(), lr=0.1)
 
-    print(output_data)
+  ''' Gets all the training tuples of data (input and output) for a given tensor containing indexes
+  '''
+  def _get_data_for_indexes(self, indexes: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    input_values = []
+    output_values = []
+
+    for index_tensor in indexes:
+      element = self._dataset[index_tensor.item()]
+      input_values.append(element[0])
+      output_values.append(element[1])
+
+    return (torch.stack(input_values), torch.stack(output_values))
 
 
   ''' Performs the actual training using our training data and model
@@ -36,20 +48,13 @@ class Training():
     for _ in range(self._NUM_EPOCHS):
       for i, data_indexes in enumerate(self._training_loader):
         if i == 0:
-          self._get_data_for_indexes(data_indexes)
-
-  '''  def train(self) -> torch.Tensor:
-        model_output = self._model(self._input_data)
-
-        for epoch in range(self._NUM_EPOCHS):
-            for _, (input_image, actual_output) in enumerate(self._data_loader):
-                output = self._model(input_image)
-                print(output, actual_output)
-                loss = self._loss_func(output, actual_output)
-                self._optimizer.zero_grad()
-                loss.backward()
-                self._optimizer.step()
-                print('Epoch:', epoch, 'Loss:', loss)
-
-
-        return model_output'''
+          input_data, output_data = self._get_data_for_indexes(data_indexes)
+          print('Starting to run model')
+          model_output = self._model(input_data)
+          print('Finished running model for first batch of', self._MINI_BATCH_SIZE)
+          plot_predicted_and_actual(model_output[0], output_data[0])
+  
+          #Loss is not currently working correctly - need to find a better way to handle this
+          torch.set_printoptions(profile='full')
+          loss = self._loss_func(model_output[0], output_data[0])
+          print('Loss value of:', loss)

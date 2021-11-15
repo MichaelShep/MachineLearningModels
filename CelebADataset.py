@@ -20,6 +20,7 @@ class CelebADataset:
     self._img_dir = img_dir
     self._feature_map_dir = feature_map_dir
     self._tensor_transform = transforms.ToTensor()
+    self._greyscale_transform = transforms.Grayscale()
 
     self._calc_dataset_size()
 
@@ -45,7 +46,7 @@ class CelebADataset:
 
     input_image = self._tensor_transform(Image.open(os.path.join(self._img_dir, str(idx) + '.jpg')))
     #For now, output only ever has 1 element as will always be the skin map
-    output_image = self._tensor_transform(Image.open(self._get_output_file_path(idx)))
+    output_image = self._tensor_transform(self._greyscale_transform(Image.open(self._get_output_file_path(idx))))
 
     return (input_image, output_image)
 
