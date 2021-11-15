@@ -6,7 +6,7 @@ from torch.utils.data import DataLoader
 from SegmentationNetwork import SegmentationNetwork
 from CelebADataset import CelebADataset
 from typing import Tuple
-from Helper import plot_predicted_and_actual
+import time
 
 class Training():
   _MINI_BATCH_SIZE = 1
@@ -50,11 +50,11 @@ class Training():
         if i == 0:
           input_data, output_data = self._get_data_for_indexes(data_indexes)
           print('Starting to run model')
+          start_time = time.time()
           model_output = self._model(input_data)
-          print('Finished running model for first batch of', self._MINI_BATCH_SIZE)
-          plot_predicted_and_actual(model_output[0], output_data[0])
+          print('Time taken to run on single mini batch of size', self._MINI_BATCH_SIZE, ':', (time.time() - start_time), 'seconds')
   
-          #Loss is not currently working correctly - need to find a better way to handle this
+          '''Loss is not currently working correctly - need to find a better way to handle this
           torch.set_printoptions(profile='full')
           loss = self._loss_func(model_output[0], output_data[0])
-          print('Loss value of:', loss)
+          print('Loss value of:', loss)'''
