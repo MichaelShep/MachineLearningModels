@@ -7,6 +7,8 @@ from SegmentationNetwork import SegmentationNetwork
 from CelebADataset import CelebADataset
 from typing import Tuple
 import time
+from Helper import plot_predicted_and_actual
+import matplotlib.pyplot as plt
 
 class Training():
   _MINI_BATCH_SIZE = 2
@@ -24,13 +26,13 @@ class Training():
     self._training_loader = DataLoader(self._training_examples, batch_size=self._MINI_BATCH_SIZE, shuffle=True, num_workers=2)
     self._testing_loader = DataLoader(self._testing_examples, batch_size=self._MINI_BATCH_SIZE, shuffle=False, num_workers=2)
 
-    #Using Per Pixel Cross Entropy Loss for our loss and Stochastic Gradient Descent for our optimiser
-    self._loss_func = nn.CrossEntropyLoss(reduction='none')
+    #Using Per Pixel Mean Squared Error for our loss and Stochastic Gradient Descent for our optimiser
+    self._loss_func = nn.MSELoss()
     self._optim = torch.optim.SGD(self._model.parameters(), lr=0.1)
 
   ''' Gets all the training tuples of data (input and output) for a given tensor containing indexes
   '''
-  def _get_data_for_indexes(self, indexes: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+  def _get_data_for_indexes(self, indexes: torch.Tensor, device: str = 'cpu') -> Tuple[torch.Tensor, torch.Tensor]:
     input_values = []
     output_values = []
 
@@ -38,9 +40,8 @@ class Training():
       element = self._dataset[index_tensor.item()]
       input_values.append(element[0])
       output_values.append(element[1])
-
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    return (torch.stack(input_values).to(device), torch.stack(output_values))
+ 
+    return (torch.stack(input_values).to(device), torch.stack(output_values).to(device))
 
 
   ''' Performs the actual training using our training data and model
@@ -48,16 +49,23 @@ class Training():
   def train(self) -> None:
     for epoch in range(self._NUM_EPOCHS):
       for i, data_indexes in enumerate(self._training_loader):
-        input_data, output_data = self._get_data_for_indexes(data_indexes)
-        start_time = time.time()
+        input_data, output_data = self._get_data_for_indexes(data_indexes, 'cuda' if torch.cuda.is_available() else 'cpu')
         model_output = self._model(input_data)
-        print('Epoch:', epoch, 'Batch:', i, 'Time Taken:', (time.time() - start_time), 'seconds')
+
+        loss = self._loss_func(model_output, output_data)
+        self._optim.zero_grad()
+        loss.backward()
+        self._optim.step()
+
+        if i % 20 == 0:
+          print('Epoch:', epoch, 'Batch:', i, 'Loss:', loss.item())
+        if i % 1000 == 0 and i != 0:
+          print('Saving Model...')
+          torch.save(self._model.state_dict(), 'MODEL.pt')
+          break
 
         #Clear all unneeded memory - without this will get a memory error
-        del input_data, model_output
+        del input_data, output_data, model_output, loss
         torch.cuda.empty_cache()
 
-        '''Loss is not currently working correctly - need to find a better way to handle this
-        torch.set_printoptions(profile='full')
-        loss = self._loss_func(model_output[0], output_data[0])
-        print('Loss value of:', loss)'''
+    input_data, output_data = self._get_data_for_indexes(torch.tensor([0]))
