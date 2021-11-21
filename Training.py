@@ -6,9 +6,7 @@ from torch.utils.data import DataLoader
 from SegmentationNetwork import SegmentationNetwork
 from CelebADataset import CelebADataset
 from typing import Tuple
-import time
 from Helper import plot_predicted_and_actual
-import matplotlib.pyplot as plt
 
 class Training():
   _MINI_BATCH_SIZE = 2
@@ -27,8 +25,8 @@ class Training():
     self._testing_loader = DataLoader(self._testing_examples, batch_size=self._MINI_BATCH_SIZE, shuffle=False, num_workers=2)
 
     #Using Per Pixel Mean Squared Error for our loss and Stochastic Gradient Descent for our optimiser
-    self._loss_func = nn.MSELoss()
-    self._optim = torch.optim.SGD(self._model.parameters(), lr=0.1)
+    self._loss_func = nn.BCEWithLogitsLoss()
+    self._optim = torch.optim.Adam(self._model.parameters(), lr=0.0001)
 
   ''' Gets all the training tuples of data (input and output) for a given tensor containing indexes
   '''
@@ -52,20 +50,20 @@ class Training():
         input_data, output_data = self._get_data_for_indexes(data_indexes, 'cuda' if torch.cuda.is_available() else 'cpu')
         model_output = self._model(input_data)
 
+        #Perform actual learning - calculate loss value, perform back-prop and grad descent step
         loss = self._loss_func(model_output, output_data)
         self._optim.zero_grad()
         loss.backward()
         self._optim.step()
 
-        if i % 20 == 0:
+        if i % 50 == 0:
           print('Epoch:', epoch, 'Batch:', i, 'Loss:', loss.item())
         if i % 1000 == 0 and i != 0:
           print('Saving Model...')
           torch.save(self._model.state_dict(), 'MODEL.pt')
-          break
+        if i % 10000 == 0:
+          plot_predicted_and_actual(model_output[0].cpu(), output_data[0].cpu())
 
         #Clear all unneeded memory - without this will get a memory error
         del input_data, output_data, model_output, loss
         torch.cuda.empty_cache()
-
-    input_data, output_data = self._get_data_for_indexes(torch.tensor([0]))

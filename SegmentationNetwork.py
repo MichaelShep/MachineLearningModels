@@ -41,7 +41,7 @@ class SegmentationNetwork(nn.Module):
     self.conv512256 = self._create_conv_layer(512, 256)
     self.conv256128 = self._create_conv_layer(256, 128)
     self.conv12864 = self._create_conv_layer(128, 64)
-    self.conv641 = self._create_conv_layer(64, 1)
+    self.conv641 = self._create_conv_layer(64, 1, kernal_size=1, padding=0)
 
   ''' Creates a new convolution layer with some default parameters that are used for this network
   '''
@@ -111,8 +111,6 @@ class SegmentationNetwork(nn.Module):
     x = self.relu(x)
 
     x = self.conv641(x) #64 input channels, 1 output channel, 512x512 tensor size
-
-    x = self.relu(x)
 
     return x
 

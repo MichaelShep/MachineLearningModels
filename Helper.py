@@ -23,18 +23,3 @@ def plot_predicted_and_actual(predicted: torch.Tensor, actual: torch.Tensor) -> 
   plt.axis('off')
 
   plt.show()
-
-
-''' Creates and display a matplotlib display displaying some of the output maps created for an image
-
-def display_outputs(output: torch.Tensor) -> None:
-  num_outputs_to_display = len(output) if len(output) < 10 else 10
-  fig = plt.figure('Output Channels', figsize=(20, 1))
-
-  for i in range(0, num_outputs_to_display):
-    fig.add_subplot(1, num_outputs_to_display, i + 1)
-    plt.imshow(output[i])
-    plt.axis('off')
-
-  plt.tight_layout()
-  plt.show()'''
