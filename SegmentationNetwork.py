@@ -41,47 +41,49 @@ class SegmentationNetwork(nn.Module):
     self.conv512256 = self._create_conv_layer(512, 256)
     self.conv256128 = self._create_conv_layer(256, 128)
     self.conv12864 = self._create_conv_layer(128, 64)
-    self.conv641 = self._create_conv_layer(64, 1, kernal_size=1, padding=0)
+    self.conv6432 = self._create_conv_layer(64, 32)
+    self.conv3232 = self._create_conv_layer(32, 32)
+    self.conv321 = self._create_conv_layer(32, 1, kernal_size=1, padding=0)
 
   ''' Creates a new convolution layer with some default parameters that are used for this network
   '''
-  def _create_conv_layer(self, in_chan, out_chan, kernal_size=3, stride=1, padding=1):
+  def _create_conv_layer(self, in_chan: int, out_chan: int, kernal_size=3, stride=1, padding=1) -> nn.Conv2d:
     return nn.Conv2d(in_channels=in_chan, out_channels=out_chan, kernel_size=kernal_size, stride=stride, padding=padding)
 
   ''' Passes an input tensor through all the contracting layers of the network
   '''
   def _perform_contracting_path(self, x: torch.Tensor) -> torch.Tensor:
-    x = self.conv364(x) #3 input Channels, 64 output channels, 1024x1024 tensor size
+    x = self.conv364(x) #3 input Channels, 64 output channels, 512x512 tensor size
     x = self.relu(x) 
-    x = self.conv6464(x) #64 input Channels, 64 output channels, 1024x1024 tensor size
-    x = self.relu(x)
-
-    x = self.max_pool(x) #1024x1024 reduced to 512x512
-
-    x = self.conv64128(x) #64 input channels, 128 output channels, 512x512 tensor size
-    x = self.relu(x)
-    x = self.conv128128(x) #128 input channels, 128 output channels, 512x512 tensor size
+    x = self.conv6464(x) #64 input Channels, 64 output channels, 512x512 tensor size
     x = self.relu(x)
 
     x = self.max_pool(x) #512x512 reduced to 256x256
 
-    x = self.conv128256(x) #128 input channels, 256 output channels, 256x256 tensor size
+    x = self.conv64128(x) #64 input channels, 128 output channels, 256x256 tensor size
     x = self.relu(x)
-    x = self.conv256256(x) #256 input channels, 256 output channels, 256x256 tensor size
+    x = self.conv128128(x) #128 input channels, 128 output channels, 256x256 tensor size
     x = self.relu(x)
 
     x = self.max_pool(x) #256x256 reduced to 128x128
 
-    x = self.conv256512(x) #256 input channels, 512 output channels, 128x128 tensor size
+    x = self.conv128256(x) #128 input channels, 256 output channels, 128x128 tensor size
     x = self.relu(x)
-    x = self.conv512512(x) #512 input channels, 512 output channels, 128x128 tensor size
+    x = self.conv256256(x) #256 input channels, 256 output channels, 128x128 tensor size
     x = self.relu(x)
-    
+
     x = self.max_pool(x) #128x128 reduced to 64x64
 
-    x = self.conv5121024(x) #512 input channels, 1024 output channels, 64x64 tensor size
+    x = self.conv256512(x) #256 input channels, 512 output channels, 64x64 tensor size
     x = self.relu(x)
-    x = self.conv10241024(x) #1024 input channels, 1024 output channels, 64x64 tensor size
+    x = self.conv512512(x) #512 input channels, 512 output channels, 64x64 tensor size
+    x = self.relu(x)
+    
+    x = self.max_pool(x) #64x64 reduced to 32x32
+
+    x = self.conv5121024(x) #512 input channels, 1024 output channels, 32x32 tensor size
+    x = self.relu(x)
+    x = self.conv10241024(x) #1024 input channels, 1024 output channels, 32x32 tensor size
     x = self.relu(x)
 
     return x
@@ -89,28 +91,35 @@ class SegmentationNetwork(nn.Module):
   ''' Takes an input that has already been passed through the contracting part of the network and expands it
   '''
   def _perform_expanding_path(self, x: torch.Tensor) -> torch.Tensor:
+    x = self.upsample(x) #Upsample from 32x32 to 64x64
+
+    x = self.conv1024512(x) #1024 input channels, 512 output channels, 64x64 tensor size
+    x = self.relu(x)
+    x = self.conv512512(x) #512 input channels, 512 output channels, 64x64 tensor size
+    x = self.relu(x)
+
     x = self.upsample(x) #Upsample from 64x64 to 128x128
 
-    x = self.conv1024512(x) #1024 input channels, 512 output channels, 128x128 tensor size
+    x = self.conv512256(x) #512 input channels, 256 output channels, 128x128 tensor size
     x = self.relu(x)
-    x = self.conv512512(x) #512 input channels, 512 output channels, 128x128 tensor size
+    x = self.conv256256(x) #256 input channels, 256 output channels, 128x128 tensor size
     x = self.relu(x)
 
     x = self.upsample(x) #Upsample from 128x128 to 256x256
 
-    x = self.conv512256(x) #512 input channels, 256 output channels, 256x256 tensor size
+    x = self.conv256128(x) #256 input channels, 128 output channels, 256x256 tensor size
     x = self.relu(x)
-    x = self.conv256256(x) #256 input channels, 256 output channels, 256x256 tensor size
+    x = self.conv12864(x) #128 input channels, 64 output channels, 256x256 tensor size
     x = self.relu(x)
 
     x = self.upsample(x) #Upsample from 256x256 to 512x512
 
-    x = self.conv256128(x) #256 input channels, 128 output channels, 512x512 tensor size
+    x = self.conv6432(x) #64 input channels, 32 output channels, 512x512 tensor size
     x = self.relu(x)
-    x = self.conv12864(x) #128 input channels, 64 output channels, 512x512 tensor size
+    x = self.conv3232(x) #32 input channels, 32 output channels, 512x512 tensor size
     x = self.relu(x)
 
-    x = self.conv641(x) #64 input channels, 1 output channel, 512x512 tensor size
+    x = self.conv321(x) #32 input channels, 1 output channel, 512x512 tensor size
 
     return x
 

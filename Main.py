@@ -21,6 +21,6 @@ if __name__ == '__main__':
     if device == 'cuda':
         torch.cuda.empty_cache()
     model = SegmentationNetwork().to(device=device)
-    model.load_state_dict(torch.load('MODEL.pt'))
+    #model.load_state_dict(torch.load('MODEL512.pt'))
     model_training = Training(model, dataset)
     model_training.train()

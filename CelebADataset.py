@@ -12,6 +12,7 @@ import glob
 
 class CelebADataset:
   _ITEMS_PER_MAP_FOLDER = 2000
+  _REDUCED_IMAGE_SIZE = 512
 
   ''' Constructor for the ImageDataset class
       Takes the location of all the images as well as all the maps used in the dataset 
@@ -44,7 +45,7 @@ class CelebADataset:
       print('Invalid Index')
       return 
 
-    input_image = self._tensor_transform(Image.open(os.path.join(self._img_dir, str(idx) + '.jpg')))
+    input_image = self._tensor_transform(Image.open(os.path.join(self._img_dir, str(idx) + '.jpg')).resize((self._REDUCED_IMAGE_SIZE, self._REDUCED_IMAGE_SIZE)))
     #For now, output only ever has 1 element as will always be the skin map
     output_image = self._tensor_transform(self._greyscale_transform(Image.open(self._get_output_file_path(idx))))
 
