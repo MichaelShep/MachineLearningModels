@@ -10,8 +10,9 @@ class SegmentationNetwork(nn.Module):
   ''' Constructor for the class
       All layers of the network and their parameters get defined here
   '''
-  def __init__(self):
+  def __init__(self, num_output_masks: int):
     super(SegmentationNetwork, self).__init__()
+    self._num_output_masks = num_output_masks
 
     #Create the layers for the network - Creating an architecture very similar to that used in U-Net
     self._contracting_path = nn.Sequential(
@@ -38,7 +39,7 @@ class SegmentationNetwork(nn.Module):
       self._create_double_conv(in_chan=128, out_chan=64),
       nn.Upsample(scale_factor=2),
       self._create_double_conv(in_chan=64, out_chan=32),
-      self._create_conv_layer(32, 1, kernal_size=1, padding=0)
+      self._create_conv_layer(32, self._num_output_masks, kernal_size=1, padding=0)
     )
 
   ''' Creates a new convolution layer with some default parameters that are used for this network

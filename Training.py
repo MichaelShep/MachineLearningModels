@@ -10,7 +10,7 @@ from Helper import plot_predicted_and_actual
 
 class Training():
   _MINI_BATCH_SIZE = 7
-  _NUM_EPOCHS = 3
+  _NUM_EPOCHS = 5
   _NUM_TRAINING_EXAMPLES = 20000
 
   ''' Splits the data into training and testing data and sets up data loader so data can be dealt with in
@@ -60,11 +60,11 @@ class Training():
           print('Epoch:', epoch, 'Batch:', i, 'Loss:', loss.item())
         if i % 1000 == 0 and i != 0:
           print('Saving Model...')
-          torch.save(self._model.state_dict(), 'MODEL512.pt')
-        if i == 0:
-          plot_predicted_and_actual(model_output[0].cpu(), output_data[0].cpu())
+          torch.save(self._model.state_dict(), 'MODEL.pt')
+        #if i % 500 == 0:
+          #plot_predicted_and_actual(input_data[0].cpu(), model_output[0].cpu(), output_data[0].cpu())
 
         #Clear all unneeded memory - without this will get a memory error
         del input_data, output_data, model_output, loss
         torch.cuda.empty_cache()
-      torch.save(self._model.state_dict(), 'MODEL512.pt')
+      torch.save(self._model.state_dict(), 'MODEL.pt')
