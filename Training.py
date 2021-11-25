@@ -10,7 +10,7 @@ from Helper import plot_predicted_and_actual
 
 class Training():
   _MINI_BATCH_SIZE = 7
-  _NUM_EPOCHS = 5
+  _NUM_EPOCHS = 20
   _NUM_TRAINING_EXAMPLES = 20000
 
   ''' Splits the data into training and testing data and sets up data loader so data can be dealt with in
@@ -46,6 +46,7 @@ class Training():
   '''
   def train(self) -> None:
     for epoch in range(self._NUM_EPOCHS):
+      self._model.train()
       for i, data_indexes in enumerate(self._training_loader):
         input_data, output_data = self._get_data_for_indexes(data_indexes, 'cuda' if torch.cuda.is_available() else 'cpu')
         model_output = self._model(input_data)
@@ -60,11 +61,30 @@ class Training():
           print('Epoch:', epoch, 'Batch:', i, 'Loss:', loss.item())
         if i % 1000 == 0 and i != 0:
           print('Saving Model...')
-          torch.save(self._model.state_dict(), 'MODEL.pt')
-        #if i % 500 == 0:
+          torch.save(self._model.state_dict(), 'MODEL_SKIP.pt')
+          print('Model Saved.')
+        #if i % 2000 == 0:
           #plot_predicted_and_actual(input_data[0].cpu(), model_output[0].cpu(), output_data[0].cpu())
 
         #Clear all unneeded memory - without this will get a memory error
         del input_data, output_data, model_output, loss
         torch.cuda.empty_cache()
+
+      print('Saving Model...')  
       torch.save(self._model.state_dict(), 'MODEL.pt')
+      print('Model Saved.')
+
+
+      print('Running testing data')
+      #Perform model evaluation on testing data
+      self._model.eval()
+      with torch.no_grad():
+        test_loss = 0
+        for i, data_indexes in enumerate(self._testing_loader):
+          input_data, output_data = self._get_data_for_indexes(data_indexes, 'cuda' if torch.cuda.is_available() else 'cpu')
+          model_output = self._model(input_data)
+
+          test_loss += self._loss_func(model_output, output_data)
+        test_loss /= len(self._training_examples)
+        print(f'Test loss at epoch {epoch}: {test_loss}')
+
