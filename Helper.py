@@ -17,6 +17,13 @@ def plot_predicted_and_actual(input_image: torch.Tensor, predicted: torch.Tensor
   display_data_element(input_image, predicted, fig, 2)
   plt.show()
 
+''' Displays a single image with matplotlib
+'''
+def display_image(image: torch.Tensor):
+  fig = plt.figure(figsize=(5, 5))
+  plt.imshow(image.detach().permute(1, 2, 0))
+  plt.axis('off')
+  plt.show()
 
 ''' Displays a single input image and all the output masks related with that
     Requires already created figure object and does not call plt.show()

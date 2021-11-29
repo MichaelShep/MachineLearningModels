@@ -63,8 +63,8 @@ class Training():
           print('Saving Model...')
           torch.save(self._model.state_dict(), 'MODEL_SKIP.pt')
           print('Model Saved.')
-        #if i % 2000 == 0:
-          #plot_predicted_and_actual(input_data[0].cpu(), model_output[0].cpu(), output_data[0].cpu())
+        if i % 2000 == 0:
+          plot_predicted_and_actual(input_data[0].cpu(), model_output[0].cpu(), output_data[0].cpu())
 
         #Clear all unneeded memory - without this will get a memory error
         del input_data, output_data, model_output, loss
