@@ -39,5 +39,6 @@ def run_recognition_network(current_directory: str) -> None:
 '''
 if __name__ == '__main__':
     current_directory = sys.path[0]
-    run_recognition_network(current_directory)
+    #run_recognition_network(current_directory)
+    run_segmentation_network(current_directory)
     

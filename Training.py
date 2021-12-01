@@ -12,6 +12,7 @@ class Training():
   _MINI_BATCH_SIZE = 7
   _NUM_EPOCHS = 20
   _NUM_TRAINING_EXAMPLES = 20000
+  _OUTPUT_THRESHOLD = 0.8
 
   ''' Splits the data into training and testing data and sets up data loader so data can be dealt with in
       batches
@@ -57,13 +58,16 @@ class Training():
         loss.backward()
         self._optim.step()
 
+        #Once all operations on model have been done, convert each pixel output to binary values
+        model_output = (model_output>self._OUTPUT_THRESHOLD).float()        
+
         if i % 50 == 0:
           print('Epoch:', epoch, 'Batch:', i, 'Loss:', loss.item())
         if i % 1000 == 0 and i != 0:
           print('Saving Model...')
           torch.save(self._model.state_dict(), 'MODEL_SKIP.pt')
           print('Model Saved.')
-        if i % 2000 == 0:
+        if i % 500 == 0:
           plot_predicted_and_actual(input_data[0].cpu(), model_output[0].cpu(), output_data[0].cpu())
 
         #Clear all unneeded memory - without this will get a memory error
@@ -71,7 +75,7 @@ class Training():
         torch.cuda.empty_cache()
 
       print('Saving Model...')  
-      torch.save(self._model.state_dict(), 'MODEL.pt')
+      torch.save(self._model.state_dict(), 'MODEL_SKIP.pt')
       print('Model Saved.')
 
 

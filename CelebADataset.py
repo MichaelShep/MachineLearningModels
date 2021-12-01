@@ -8,8 +8,6 @@ from torchvision import transforms # type: ignore
 from PIL import Image # type: ignore
 import glob
 
-#For now, just loading the skin image as the output and the original face as the input
-
 class CelebADataset:
   _ITEMS_PER_MAP_FOLDER = 2000
   _REDUCED_IMAGE_SIZE = 512
