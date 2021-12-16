@@ -13,11 +13,8 @@ from Helper import display_image
 '''
 def run_segmentation_network(current_directory: str) -> None:
     dataset_directory = os.path.join(os.path.split(current_directory)[0], 'CelebAMask-HQ')
-    image_directory = os.path.join(dataset_directory, 'CelebA-HQ-img')
-    features_directory = os.path.join(dataset_directory, 'CelebAMask-HQ-mask-anno')
 
-    #Load all image and map data and split it randomly into testing and training data
-    dataset = CelebADataset(image_directory, features_directory)
+    dataset = CelebADataset(dataset_directory)
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     if device == 'cuda':
@@ -27,18 +24,9 @@ def run_segmentation_network(current_directory: str) -> None:
     model_training = Training(model, dataset)
     model_training.train()
 
-''' Runs the code to start the Recognition network
-'''
-def run_recognition_network(current_directory: str) -> None:
-    dataset_directory = os.path.join(os.path.split(current_directory)[0], 'lfw')
-
-    dataset = LfwDataset(dataset_directory)
-    display_image(dataset[50][1])
-
 ''' Entry point for the program
 '''
 if __name__ == '__main__':
     current_directory = sys.path[0]
-    #run_recognition_network(current_directory)
     run_segmentation_network(current_directory)
     

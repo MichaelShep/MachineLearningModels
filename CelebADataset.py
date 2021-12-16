@@ -16,15 +16,33 @@ class CelebADataset:
                 'mouth', 'u_lip', 'l_lip', 'hair', 'hat', 'ear_r', 'neck_l', 'neck', 'cloth']
 
   ''' Constructor for the ImageDataset class
-      Takes the location of all the images as well as all the maps used in the dataset 
+      Takes the location of the dataset and uses this to get the location of images, masks and annotations
   '''
-  def __init__(self, img_dir: str, feature_mask_dir: str):
-    self._img_dir = img_dir
-    self._feature_mask_dir = feature_mask_dir
+  def __init__(self, base_dir: str):
+    self._img_dir = os.path.join(base_dir, 'CelebA-HQ-img')
+    self._feature_mask_dir = os.path.join(base_dir, 'CelebAMask-HQ-mask-anno')
+    self._attribute_anno_file = os.path.join(base_dir, 'CelebAMask-HQ-attribute-anno.txt')
+
     self._tensor_transform = transforms.ToTensor()
     self._greyscale_transform = transforms.Grayscale()
 
     self._calc_dataset_size()
+    self._load_attribute_data()
+
+  ''' Loads all the attribute data about each image from the attibute file
+  '''
+  def _load_attribute_data(self):
+    with open(self._attribute_anno_file) as f:
+      lines = f.read().splitlines()
+      num_elements = int(lines[0])
+      self._attribute_names = lines[1].split(' ')
+      self._attributes = []
+      for i in range(2, num_elements + 2):
+        image_attributes = lines[i].split(' ')
+        #Remove element for image name and also second whitespace
+        image_attributes.pop(0)
+        image_attributes.pop(0)
+        self._attributes.append(image_attributes)   
 
   ''' Gets the base path of the output file for a given index - just need to append the actual mask name to get the full path
   '''
