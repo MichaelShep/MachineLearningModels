@@ -98,3 +98,8 @@ class CelebADataset:
   '''
   def get_num_output_masks(self) -> int:
     return len(self._mask_list)
+
+  ''' Gets the amount of attributes that each image has 
+  '''
+  def get_num_attributes(self) -> int:
+    return len(self._attributes)
