@@ -13,23 +13,25 @@ from Helper import display_image
 ''' Runs the code to start the Segmentation Network
 '''
 def run_segmentation_network(dataset_directory: str) -> None:
-    dataset = CelebADataset(dataset_directory)
+    dataset = CelebADataset(dataset_directory, for_segmentation=True)
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     if device == 'cuda':
         torch.cuda.empty_cache()
     model = SegmentationNetwork(dataset.get_num_output_masks()).to(device=device)
     model.load_state_dict(torch.load('MODEL_SKIP.pt'))
-    model_training = Training(model, dataset)
+    model_training = Training(model, dataset, for_segmentation=True, batch_size=7, learning_rate=0.0001)
     model_training.train()
 
 ''' Runs the code to start the Attributes network
 '''
 def run_attributes_network(dataset_directory: str) -> None:
-    dataset = CelebADataset(dataset_directory)
+    dataset = CelebADataset(dataset_directory, for_segmentation=False)
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     model = AttributesNetwork(dataset.get_num_attributes()).to(device=device)
+    model_training = Training(model, dataset, for_segmentation=False, batch_size=50, learning_rate=0.01)
+    model_training.train()
 
 ''' Entry point for the program
 '''

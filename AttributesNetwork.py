@@ -34,31 +34,31 @@ class AttributesNetwork(nn.Module):
     '''
     def forward(self, x) -> torch.Tensor:
         x = self._conv1(x) #Outputs Batch x 512 x 512 x 16
-        x = self._relu()
+        x = self._relu(x)
         x = self._max_pool(x) #Outputs Batch x 256 x 256 x 16
 
         x = self._conv2(x) #Outputs Batch x 256 x 256 x 32
-        x = self._relu()
+        x = self._relu(x)
         x = self._max_pool(x) #Outputs Batch x 128 x 128 x 32
 
         x = self._conv3(x) #Outputs Batch x 128 x 128 x 64
-        x = self._relu()
+        x = self._relu(x)
         x = self._max_pool(x) #Outputs Batch x 64 x 64 x 64
 
         x = self._conv4(x) #Outputs Batch x 64 x 64 x 64
-        x = self._relu()
+        x = self._relu(x)
 
         x = self._conv5(x) #Outputs Batch x 64 x 64 x 32
-        x = self._relu()
+        x = self._relu(x)
         x = self._max_pool(x) #Outputs Batch x 32 x 32 x 32
 
         x = x.view(x.size(0), -1) #Flatten input so it can be passed to linear layers
 
         x = self._lin1(x) #Outputs Batch x 1024
-        x = self._relu()
+        x = self._relu(x)
 
         x = self._lin2(x) #Outputs Batch x 64
-        x = self._relu()
+        x = self._relu(x)
 
         x = self._lin3(x) #Outputs Batch x Num Attributes
 

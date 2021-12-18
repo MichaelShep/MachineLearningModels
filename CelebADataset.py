@@ -18,7 +18,8 @@ class CelebADataset:
   ''' Constructor for the ImageDataset class
       Takes the location of the dataset and uses this to get the location of images, masks and annotations
   '''
-  def __init__(self, base_dir: str):
+  def __init__(self, base_dir: str, for_segmentation: bool):
+    self._for_segmentation = for_segmentation
     self._img_dir = os.path.join(base_dir, 'CelebA-HQ-img')
     self._feature_mask_dir = os.path.join(base_dir, 'CelebAMask-HQ-mask-anno')
     self._attribute_anno_file = os.path.join(base_dir, 'CelebAMask-HQ-attribute-anno.txt')
@@ -42,7 +43,15 @@ class CelebADataset:
         #Remove element for image name and also second whitespace
         image_attributes.pop(0)
         image_attributes.pop(0)
-        self._attributes.append(image_attributes)   
+
+        #Convert all values to ints and replace -1's with 0 as easier to work with in network
+        for i in range(len(image_attributes)):
+          image_attributes[i] = int(image_attributes[i])
+          if image_attributes[i] == -1:
+            image_attributes[i] = 0
+
+        self._attributes.append(image_attributes)
+      
 
   ''' Gets the base path of the output file for a given index - just need to append the actual mask name to get the full path
   '''
@@ -83,10 +92,15 @@ class CelebADataset:
       return 
 
     input_image = self._tensor_transform(Image.open(os.path.join(self._img_dir, str(idx) + '.jpg')).resize((self._REDUCED_IMAGE_SIZE, self._REDUCED_IMAGE_SIZE)))
-    #For now, output only ever has 1 element as will always be the skin map
-    output_images = self._get_output_images(idx)
 
-    return (input_image, output_images)
+    #For segmentation network, need to return output images, for attributes need to return attributes list
+    if self._for_segmentation:
+      #For now, output only ever has 1 element as will always be the skin map
+      output = self._get_output_images(idx)
+    else:
+      output = torch.Tensor(self._attributes[idx])
+
+    return (input_image, output)
 
   ''' Splits our dataset indicies randomly into training and testing data
   '''
@@ -102,4 +116,4 @@ class CelebADataset:
   ''' Gets the amount of attributes that each image has 
   '''
   def get_num_attributes(self) -> int:
-    return len(self._attributes)
+    return len(self._attribute_names)
