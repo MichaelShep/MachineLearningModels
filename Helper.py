@@ -57,8 +57,10 @@ def create_double_conv(in_chan: int, out_chan: int) -> nn.Sequential:
 
 ''' Saves and optimizes a model so that it can be used with PyTorch mobile
 '''
-def save_model_for_mobile(model: torch.nn.Module, model_name: str):
-    model.eval()
-    script_model = torch.jit.script(model)
-    optimized_script_model = optimize_for_mobile(script_model)
-    optimized_script_model._save_for_lite_interpreter(model_name + '.ptl')
+def save_model_for_mobile(model: torch.nn.Module, model_name: str, example_input: torch.Tensor):
+  model = model.to('cpu')
+  example_input = example_input.to('cpu')
+  model.eval()
+  script_model = torch.jit.trace(model, example_input)
+  optimized_script_model = optimize_for_mobile(script_model)
+  optimized_script_model._save_for_lite_interpreter(model_name + '.ptl')
