@@ -9,17 +9,18 @@ from typing import Tuple
 from Helper import plot_predicted_and_actual
 
 class Training():
-  _NUM_EPOCHS = 20
+  _NUM_EPOCHS = 5
   _NUM_TRAINING_EXAMPLES = 20000
   _OUTPUT_THRESHOLD = 0.8
 
   ''' Splits the data into training and testing data and sets up data loader so data can be dealt with in
       batches
   '''
-  def __init__(self, model: SegmentationNetwork, dataset: CelebADataset, for_segmentation: bool, batch_size: int, learning_rate: float):
+  def __init__(self, model: SegmentationNetwork, dataset: CelebADataset, for_segmentation: bool, batch_size: int, learning_rate: float, save_name: str):
     self._model = model
     self._dataset = dataset
     self._for_segmentation = for_segmentation
+    self._save_name = save_name
     self._training_examples, self._testing_examples = dataset.get_train_test_split(self._NUM_TRAINING_EXAMPLES)
 
     self._training_loader = DataLoader(self._training_examples, batch_size=batch_size, shuffle=True, num_workers=2)
@@ -65,7 +66,7 @@ class Training():
           print('Epoch:', epoch, 'Batch:', i, 'Loss:', loss.item())
         if i % 1000 == 0 and i != 0:
           print('Saving Model...')
-          torch.save(self._model.state_dict(), 'MODEL_ATTRIBUTES.pt')
+          torch.save(self._model.state_dict(), self._save_name)
           print('Model Saved.')
 
         if i % 500 == 0 and self._for_segmentation:
@@ -79,7 +80,7 @@ class Training():
         torch.cuda.empty_cache()
 
       print('Saving Model...')  
-      torch.save(self._model.state_dict(), 'MODEL_ATTRIBUTES.pt')
+      torch.save(self._model.state_dict(), self._save_name)
       print('Model Saved.')
 
 

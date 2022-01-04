@@ -3,3 +3,4 @@ venv/
 MNIST Classification/
 .DS_Store
 *.pt
+*.ptl
