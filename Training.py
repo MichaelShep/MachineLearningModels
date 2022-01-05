@@ -9,22 +9,24 @@ from typing import Tuple
 from Helper import plot_predicted_and_actual
 
 class Training():
-  _NUM_EPOCHS = 5
+  _NUM_EPOCHS = 10
   _NUM_TRAINING_EXAMPLES = 20000
   _OUTPUT_THRESHOLD = 0.8
 
   ''' Splits the data into training and testing data and sets up data loader so data can be dealt with in
       batches
   '''
-  def __init__(self, model: SegmentationNetwork, dataset: CelebADataset, for_segmentation: bool, batch_size: int, learning_rate: float, save_name: str):
+  def __init__(self, model: SegmentationNetwork, dataset: CelebADataset, for_segmentation: bool,
+               batch_size: int, learning_rate: float, save_name: str, display_outputs: bool):
     self._model = model
     self._dataset = dataset
     self._for_segmentation = for_segmentation
     self._save_name = save_name
-    self._training_examples, self._testing_examples = dataset.get_train_test_split(self._NUM_TRAINING_EXAMPLES)
+    self._display_outputs = display_outputs
+    self._training_examples, self._validation_examples = dataset.get_train_test_split(self._NUM_TRAINING_EXAMPLES)
 
     self._training_loader = DataLoader(self._training_examples, batch_size=batch_size, shuffle=True, num_workers=2)
-    self._testing_loader = DataLoader(self._testing_examples, batch_size=batch_size, shuffle=False, num_workers=2)
+    self._validation_loader = DataLoader(self._validation_examples, batch_size=batch_size, shuffle=False, num_workers=2)
 
     #Using Per Pixel Mean Squared Error for our loss and Stochastic Gradient Descent for our optimiser
     self._loss_func = nn.BCEWithLogitsLoss()
@@ -69,9 +71,9 @@ class Training():
           torch.save(self._model.state_dict(), self._save_name)
           print('Model Saved.')
 
-        if i % 500 == 0 and self._for_segmentation:
+        if i % 500 == 0 and self._for_segmentation and self._display_outputs:
           plot_predicted_and_actual(input_data[0].cpu(), model_output[0].cpu(), output_data[0].cpu())
-        elif i % 500 == 0:
+        elif i % 500 == 0 and self._display_outputs:
           print('Example Predicted Values: ', model_output[0].cpu())
           print('Example Actual Values:', output_data[0].cpu())
 
@@ -82,18 +84,26 @@ class Training():
       print('Saving Model...')  
       torch.save(self._model.state_dict(), self._save_name)
       print('Model Saved.')
-
-
-      '''print('Running testing data')
-      #Perform model evaluation on testing data
+    
+  ''' Runs our model on unseen validation data to check that it still performs well on unseen data
+  '''
+  def run_on_valdiation_data(self, display_outputs: bool = False) -> None:
+    print('Running Validation Step...')
+    for i, data_indexes in enumerate(self._validation_loader):
       self._model.eval()
       with torch.no_grad():
-        test_loss = 0
-        for i, data_indexes in enumerate(self._testing_loader):
-          input_data, output_data = self._get_data_for_indexes(data_indexes, 'cuda' if torch.cuda.is_available() else 'cpu')
-          model_output = self._model(input_data)
-
-          test_loss += self._loss_func(model_output, output_data)
-        test_loss /= len(self._training_examples)
-        print(f'Test loss at epoch {epoch}: {test_loss}')'''
+        total_validation_loss = 0
+        input_data, output_data = self._get_data_for_indexes(data_indexes, 'cuda' if torch.cuda.is_available() else 'cpu')
+        model_output = self._model(input_data)
+        loss = self._loss_func(model_output, output_data)  
+        model_output = (model_output>self._OUTPUT_THRESHOLD).float()
+        total_validation_loss += loss
+        if i % 50 == 0:
+          print(f'Batch {i}, Current Batch Loss: {loss}')
+        if i % 500 == 0 and display_outputs:
+          plot_predicted_and_actual(input_data[0].cpu(), model_output[0].cpu(), output_data[0].cpu())
+    total_validation_loss /= len(self._validation_examples)
+    print(f'Validation Loss: {total_validation_loss}')
+    if display_outputs:
+      plot_predicted_and_actual(input_data[0].cpu(), model_output[0].cpu(), output_data[0].cpu())    
 

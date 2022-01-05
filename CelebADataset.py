@@ -26,6 +26,7 @@ class CelebADataset:
 
     self._tensor_transform = transforms.ToTensor()
     self._greyscale_transform = transforms.Grayscale()
+    self._normalize_transform = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 
     self._calc_dataset_size()
     self._load_attribute_data()
@@ -91,7 +92,7 @@ class CelebADataset:
       print('Invalid Index')
       return 
 
-    input_image = self._tensor_transform(Image.open(os.path.join(self._img_dir, str(idx) + '.jpg')).resize((self._REDUCED_IMAGE_SIZE, self._REDUCED_IMAGE_SIZE)))
+    input_image = self._normalize_transform(self._tensor_transform(Image.open(os.path.join(self._img_dir, str(idx) + '.jpg')).resize((self._REDUCED_IMAGE_SIZE, self._REDUCED_IMAGE_SIZE))))
 
     #For segmentation network, need to return output images, for attributes need to return attributes list
     if self._for_segmentation:

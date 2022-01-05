@@ -19,13 +19,14 @@ def run_segmentation_network(dataset_directory: str) -> None:
     if device == 'cuda':
         torch.cuda.empty_cache()
     model = SegmentationNetwork(dataset.get_num_output_masks()).to(device=device)
-    model_save_name = 'SegmentationModelNew'
+    model_save_name = 'segmentation_model'
     if os.path.exists(model_save_name + '.pt'):
-        model.load(model_save_name + '.pt')
+        model.load_state_dict(torch.load(model_save_name + '.pt'))
     model_training = Training(model, dataset, for_segmentation=True, batch_size=7, 
-                                learning_rate=0.0001, save_name='SegmentationModel.pt')
+                                learning_rate=0.0001, save_name=model_save_name + '.pt', display_outputs=False)
     model_training.train()
-    save_model_for_mobile(model, model_save_name, dataset[0][0].unsqueeze(dim=0))
+    save_model_for_mobile(model, 'segmentation_model', dataset[0][0].unsqueeze(dim=0))
+    model_training.run_on_valdiation_data(display_outputs=True)
 
 ''' Runs the code to start the Attributes network
 '''
@@ -38,7 +39,7 @@ def run_attributes_network(dataset_directory: str) -> None:
     if os.path.exists(model_save_name + '.pt'):
         model.load(model_save_name + '.pt')
     model_training = Training(model, dataset, for_segmentation=False, batch_size=50, 
-                                learning_rate=0.01, save_name=model_save_name + '.pt')
+                                learning_rate=0.01, save_name=model_save_name + '.pt', display_outputs=True)
     model_training.train()
     save_model_for_mobile(model, model_save_name)
 
