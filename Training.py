@@ -9,7 +9,6 @@ from typing import Tuple
 from Helper import plot_predicted_and_actual
 
 class Training():
-  _NUM_EPOCHS = 10
   _NUM_TRAINING_EXAMPLES = 20000
   _OUTPUT_THRESHOLD = 0.8
 
@@ -17,12 +16,13 @@ class Training():
       batches
   '''
   def __init__(self, model: SegmentationNetwork, dataset: CelebADataset, for_segmentation: bool,
-               batch_size: int, learning_rate: float, save_name: str, display_outputs: bool):
+               batch_size: int, learning_rate: float, save_name: str, num_epochs: int, display_outputs: bool):
     self._model = model
     self._dataset = dataset
     self._for_segmentation = for_segmentation
     self._save_name = save_name
     self._display_outputs = display_outputs
+    self._num_epochs = num_epochs
     self._training_examples, self._validation_examples = dataset.get_train_test_split(self._NUM_TRAINING_EXAMPLES)
 
     self._training_loader = DataLoader(self._training_examples, batch_size=batch_size, shuffle=True, num_workers=2)
@@ -49,7 +49,7 @@ class Training():
   ''' Performs the actual training using our training data and model
   '''
   def train(self) -> None:
-    for epoch in range(self._NUM_EPOCHS):
+    for epoch in range(self._num_epochs):
       self._model.train()
       for i, data_indexes in enumerate(self._training_loader):
         input_data, output_data = self._get_data_for_indexes(data_indexes, 'cuda' if torch.cuda.is_available() else 'cpu')

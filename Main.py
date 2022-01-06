@@ -23,7 +23,8 @@ def run_segmentation_network(dataset_directory: str) -> None:
     if os.path.exists(model_save_name + '.pt'):
         model.load_state_dict(torch.load(model_save_name + '.pt'))
     model_training = Training(model, dataset, for_segmentation=True, batch_size=7, 
-                                learning_rate=0.0001, save_name=model_save_name + '.pt', display_outputs=False)
+                                learning_rate=0.0001, save_name=model_save_name + '.pt',
+                                num_epochs=10, display_outputs=False)
     model_training.train()
     save_model_for_mobile(model, 'segmentation_model', dataset[0][0].unsqueeze(dim=0))
     model_training.run_on_valdiation_data(display_outputs=True)
@@ -35,18 +36,20 @@ def run_attributes_network(dataset_directory: str) -> None:
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     model = AttributesNetwork(dataset.get_num_attributes()).to(device=device)
-    model_save_name = 'AttributesModel'
+    model_save_name = 'attributes_model'
     if os.path.exists(model_save_name + '.pt'):
-        model.load(model_save_name + '.pt')
-    model_training = Training(model, dataset, for_segmentation=False, batch_size=50, 
-                                learning_rate=0.01, save_name=model_save_name + '.pt', display_outputs=True)
+        model.load_state_dict(torch.load(model_save_name + '.pt'))
+    model_training = Training(model, dataset, for_segmentation=False, batch_size=15, 
+                                learning_rate=0.001, save_name=model_save_name + '.pt', 
+                                num_epochs=30, display_outputs=True)
     model_training.train()
     save_model_for_mobile(model, model_save_name)
+    model_training.run_on_valdiation_data(display_outputs=True)
 
 ''' Entry point for the program
 '''
 if __name__ == '__main__':
     current_directory = sys.path[0]
     dataset_directory = os.path.join(os.path.split(current_directory)[0], 'CelebAMask-HQ')
-    run_segmentation_network(dataset_directory)
+    run_attributes_network(dataset_directory)
     
