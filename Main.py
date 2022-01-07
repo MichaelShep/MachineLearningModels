@@ -41,9 +41,9 @@ def run_attributes_network(dataset_directory: str) -> None:
         model.load_state_dict(torch.load(model_save_name + '.pt'))
     model_training = Training(model, dataset, for_segmentation=False, batch_size=15, 
                                 learning_rate=0.001, save_name=model_save_name + '.pt', 
-                                num_epochs=30, display_outputs=True)
+                                num_epochs=10, display_outputs=True)
     model_training.train()
-    save_model_for_mobile(model, model_save_name)
+    save_model_for_mobile(model, model_save_name, dataset[0][0].unsqueeze(dim=0))
     model_training.run_on_valdiation_data(display_outputs=True)
 
 ''' Entry point for the program

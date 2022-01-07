@@ -18,13 +18,6 @@ class AttributesNetwork(nn.Module):
         self._relu = nn.ReLU()
         self._max_pool = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
 
-        '''self._conv1 = create_double_conv(in_chan=3, out_chan=64)
-        self._conv2 = create_double_conv(in_chan=64, out_chan=128)
-        self._conv3 = create_double_conv(in_chan=128, out_chan=256)
-        self._conv4 = create_double_conv(in_chan=256, out_chan=128)
-        self._conv5 = create_double_conv(in_chan=128, out_chan=64)
-        self._conv6 = create_double_conv(in_chan=64, out_chan=32)'''
-
         self._conv1 = create_conv_layer(in_chan=3, out_chan=64)
         self._conv2 = create_conv_layer(in_chan=64, out_chan=128)
         self._conv3 = create_conv_layer(in_chan=128, out_chan=64)

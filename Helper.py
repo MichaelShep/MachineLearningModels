@@ -64,3 +64,4 @@ def save_model_for_mobile(model: torch.nn.Module, model_name: str, example_input
   script_model = torch.jit.trace(model, example_input)
   optimized_script_model = optimize_for_mobile(script_model)
   optimized_script_model._save_for_lite_interpreter(model_name + '.ptl')
+  print('Mobile Model Saved')

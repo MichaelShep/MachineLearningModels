@@ -87,23 +87,31 @@ class Training():
     
   ''' Runs our model on unseen validation data to check that it still performs well on unseen data
   '''
-  def run_on_valdiation_data(self, display_outputs: bool = False) -> None:
+  def run_on_valdiation_data(self, display_outputs: bool = False, for_segmentaiton=False) -> None:
     print('Running Validation Step...')
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    self._model = self._model.to(device)
     for i, data_indexes in enumerate(self._validation_loader):
       self._model.eval()
       with torch.no_grad():
         total_validation_loss = 0
-        input_data, output_data = self._get_data_for_indexes(data_indexes, 'cuda' if torch.cuda.is_available() else 'cpu')
+        input_data, output_data = self._get_data_for_indexes(data_indexes, device)
         model_output = self._model(input_data)
         loss = self._loss_func(model_output, output_data)  
         model_output = (model_output>self._OUTPUT_THRESHOLD).float()
         total_validation_loss += loss
         if i % 50 == 0:
           print(f'Batch {i}, Current Batch Loss: {loss}')
-        if i % 500 == 0 and display_outputs:
+        if i % 500 == 0 and display_outputs and for_segmentaiton:
           plot_predicted_and_actual(input_data[0].cpu(), model_output[0].cpu(), output_data[0].cpu())
+        elif i % 500 == 0 and display_outputs:
+          print('Example Predicted Values: ', model_output[0].cpu())
+          print('Example Actual Values:', output_data[0].cpu())
     total_validation_loss /= len(self._validation_examples)
     print(f'Validation Loss: {total_validation_loss}')
-    if display_outputs:
-      plot_predicted_and_actual(input_data[0].cpu(), model_output[0].cpu(), output_data[0].cpu())    
+    if display_outputs and for_segmentaiton:
+      plot_predicted_and_actual(input_data[0].cpu(), model_output[0].cpu(), output_data[0].cpu())
+    elif display_outputs:
+      print('Example Predicted Values: ', model_output[0].cpu())
+      print('Example Actual Values:', output_data[0].cpu())
 
