@@ -6,7 +6,7 @@ from torch.utils.data import DataLoader
 from SegmentationNetwork import SegmentationNetwork
 from CelebADataset import CelebADataset
 from typing import Tuple
-from Helper import plot_predicted_and_actual
+from Helper import plot_predicted_and_actual, plot_data_list, display_image
 
 class Training():
   _NUM_TRAINING_EXAMPLES = 20000
@@ -31,6 +31,7 @@ class Training():
     #Using Per Pixel Mean Squared Error for our loss and Stochastic Gradient Descent for our optimiser
     self._loss_func = nn.BCEWithLogitsLoss()
     self._optim = torch.optim.Adam(self._model.parameters(), lr=learning_rate)
+    self._per_epoch_loss = []
 
   ''' Gets all the training tuples of data (input and output) for a given tensor containing indexes
   '''
@@ -51,12 +52,17 @@ class Training():
   def train(self) -> None:
     for epoch in range(self._num_epochs):
       self._model.train()
+      total_epoch_loss = 0
       for i, data_indexes in enumerate(self._training_loader):
         input_data, output_data = self._get_data_for_indexes(data_indexes, 'cuda' if torch.cuda.is_available() else 'cpu')
         model_output = self._model(input_data)
 
         #Perform actual learning - calculate loss value, perform back-prop and grad descent step
         loss = self._loss_func(model_output, output_data)
+        #Add an initial value of our tracked loss as just the first batch loss
+        if len(self._per_epoch_loss) == 0:
+          self._per_epoch_loss.append(loss.item());
+        total_epoch_loss += (loss.item() * len(data_indexes))
         self._optim.zero_grad()
         loss.backward()
         self._optim.step()
@@ -74,18 +80,22 @@ class Training():
         if i % 500 == 0 and self._for_segmentation and self._display_outputs:
           plot_predicted_and_actual(input_data[0].cpu(), model_output[0].cpu(), output_data[0].cpu())
         elif i % 500 == 0 and self._display_outputs:
-          print('Example Predicted Values: ', model_output[0].cpu())
-          print('Example Actual Values:', output_data[0].cpu())
+          self._display_output_for_attributes_model(input_data[0].cpu(), output_data[0].cpu(), model_output[0].cpu())
 
         #Clear all unneeded memory - without this will get a memory error
         del input_data, output_data, model_output, loss
         torch.cuda.empty_cache()
 
       print('Saving Model...')  
+      total_epoch_loss /= len(self._training_examples)
+      self._per_epoch_loss.append(total_epoch_loss)
       torch.save(self._model.state_dict(), self._save_name)
       print('Model Saved.')
     
-  ''' Runs our model on unseen validation data to check that it still performs well on unseen data
+    #Show training loss curve once the model has been trained
+    plot_data_list(self._per_epoch_loss)
+    
+  ''' Runs our model on unseen validation data to check we are not overfitting to training data
   '''
   def run_on_valdiation_data(self, display_outputs: bool = False, for_segmentaiton=False) -> None:
     print('Running Validation Step...')
@@ -105,13 +115,18 @@ class Training():
         if i % 500 == 0 and display_outputs and for_segmentaiton:
           plot_predicted_and_actual(input_data[0].cpu(), model_output[0].cpu(), output_data[0].cpu())
         elif i % 500 == 0 and display_outputs:
-          print('Example Predicted Values: ', model_output[0].cpu())
-          print('Example Actual Values:', output_data[0].cpu())
+          self._display_output_for_attributes_model(input_data[0].cpu(), output_data[0].cpu(), model_output[0].cpu())
     total_validation_loss /= len(self._validation_examples)
     print(f'Validation Loss: {total_validation_loss}')
     if display_outputs and for_segmentaiton:
       plot_predicted_and_actual(input_data[0].cpu(), model_output[0].cpu(), output_data[0].cpu())
     elif display_outputs:
-      print('Example Predicted Values: ', model_output[0].cpu())
-      print('Example Actual Values:', output_data[0].cpu())
+      self._display_output_for_attributes_model(input_data[0].cpu(), output_data[0].cpu(), model_output[0].cpu())
+
+  ''' Displays an example of the output from the attributes model - displays input image alongside this
+  '''
+  def _display_output_for_attributes_model(self, input_data, actual_output, predicted_output):
+    print('Actual Values for this image:\n', self._dataset.attribute_list_to_string(actual_output))
+    print('Predicted Values for this image:\n', self._dataset.attribute_list_to_string(predicted_output))
+    display_image(input_data)
 

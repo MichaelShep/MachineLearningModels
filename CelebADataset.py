@@ -3,7 +3,7 @@
 import os
 from torch.utils.data import random_split, Subset
 import torch
-from typing import Tuple
+from typing import Tuple, List
 from torchvision import transforms # type: ignore
 from PIL import Image # type: ignore
 import glob
@@ -118,3 +118,18 @@ class CelebADataset:
   '''
   def get_num_attributes(self) -> int:
     return len(self._attribute_names)
+
+  ''' Takes an attribute list consisting of 0s and 1s and converts it into a string listing the attributes that a certain image has.
+  '''
+  def attribute_list_to_string(self, attribute_list: List[int]) -> str:
+    #Check that the input list is in the correct format
+    if len(attribute_list) != self.get_num_attributes():
+      print('Invalid Attribute List')
+      return
+    
+    #Create output by getting all the names of the features that this face has
+    output_string = 'This face image has the following attributes: '
+    for i in range(len(attribute_list)):
+      if attribute_list[i] == 1:
+        output_string += self._attribute_names[i] + ', '
+    return output_string
