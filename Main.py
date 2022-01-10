@@ -27,7 +27,6 @@ def run_segmentation_network(dataset_directory: str) -> None:
                                 num_epochs=1, display_outputs=False)
     model_training.train()
     save_model_for_mobile(model, model_save_name, dataset[0][0].unsqueeze(dim=0))
-    model_training.run_on_valdiation_data(display_outputs=True)
 
 ''' Runs the code to start the Attributes network
 '''
@@ -36,15 +35,14 @@ def run_attributes_network(dataset_directory: str) -> None:
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     model = AttributesNetwork(dataset.get_num_attributes()).to(device=device)
-    model_save_name = 'attributes_model'
+    model_save_name = 'attributes_model_2'
     if os.path.exists(model_save_name + '.pt'):
         model.load_state_dict(torch.load(model_save_name + '.pt'))
     model_training = Training(model, dataset, for_segmentation=False, batch_size=15, 
                                 learning_rate=0.001, save_name=model_save_name + '.pt', 
-                                num_epochs=10, display_outputs=True)
+                                num_epochs=10, display_outputs=False)
     model_training.train()
     save_model_for_mobile(model, model_save_name, dataset[0][0].unsqueeze(dim=0))
-    model_training.run_on_valdiation_data(display_outputs=True)
 
 ''' Entry point for the program
 '''

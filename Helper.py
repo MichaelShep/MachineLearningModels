@@ -66,9 +66,10 @@ def save_model_for_mobile(model: torch.nn.Module, model_name: str, example_input
   optimized_script_model._save_for_lite_interpreter(model_name + '.ptl')
   print('Mobile Model Saved')
 
-''' Uses matplotlib to plot a curve for a set of data - using the data indexes as the x axis
+''' Uses matplotlib to plot a curve for loss values - using the data indexes as the x axis
 '''
-def plot_data_list(data: List[float]):
-  indexes = list(range(0, len(data)))
-  plt.plot(indexes, data)
+def plot_loss_list(training_losses: List[float], validation_losses: List[float]):
+  indexes = list(range(0, len(training_losses)))
+  plt.plot(indexes, training_losses, color='green')
+  plt.plot(indexes, validation_losses, color='blue')
   plt.show()

@@ -9,6 +9,7 @@ from Helper import create_conv_layer, create_double_conv
 class AttributesNetwork(nn.Module):
     ''' Constructor for the class
         All layers of the network and their parameters get defined here
+        POSSIBLY ADD SOME RELU LAYERS TO IMPROVE TRAINING
     '''
     def __init__(self, num_attributes: int):
         super(AttributesNetwork, self).__init__()

@@ -6,7 +6,7 @@ from torch.utils.data import DataLoader
 from SegmentationNetwork import SegmentationNetwork
 from CelebADataset import CelebADataset
 from typing import Tuple
-from Helper import plot_predicted_and_actual, plot_data_list, display_image
+from Helper import plot_predicted_and_actual, display_image, plot_loss_list
 
 class Training():
   _NUM_TRAINING_EXAMPLES = 20000
@@ -31,7 +31,8 @@ class Training():
     #Using Per Pixel Mean Squared Error for our loss and Stochastic Gradient Descent for our optimiser
     self._loss_func = nn.BCEWithLogitsLoss()
     self._optim = torch.optim.Adam(self._model.parameters(), lr=learning_rate)
-    self._per_epoch_loss = []
+    self._per_epoch_training_loss = []
+    self._per_epoch_validation_loss = []
 
   ''' Gets all the training tuples of data (input and output) for a given tensor containing indexes
   '''
@@ -50,6 +51,8 @@ class Training():
   ''' Performs the actual training using our training data and model
   '''
   def train(self) -> None:
+    #Run on validation data before doing any training so that we get an inital value for our loss
+    self.run_on_validation_data(display_outputs=self._display_outputs, for_segmentation=self._for_segmentation)
     for epoch in range(self._num_epochs):
       self._model.train()
       total_epoch_loss = 0
@@ -59,9 +62,9 @@ class Training():
 
         #Perform actual learning - calculate loss value, perform back-prop and grad descent step
         loss = self._loss_func(model_output, output_data)
-        #Add an initial value of our tracked loss as just the first batch loss
-        if len(self._per_epoch_loss) == 0:
-          self._per_epoch_loss.append(loss.item());
+        #Add an initial value of our tracked loss to be used as the starting point for the loss
+        if len(self._per_epoch_training_loss) == 0:
+          self._per_epoch_training_loss.append(loss.item())
         total_epoch_loss += (loss.item() * len(data_indexes))
         self._optim.zero_grad()
         loss.backward()
@@ -88,40 +91,45 @@ class Training():
 
       print('Saving Model...')  
       total_epoch_loss /= len(self._training_examples)
-      self._per_epoch_loss.append(total_epoch_loss)
+      self._per_epoch_training_loss.append(total_epoch_loss)
       torch.save(self._model.state_dict(), self._save_name)
       print('Model Saved.')
+      self.run_on_validation_data(display_outputs=self._display_outputs, for_segmentation=self._for_segmentation)
     
     #Show training loss curve once the model has been trained
-    plot_data_list(self._per_epoch_loss)
+    plot_loss_list(self._per_epoch_training_loss, self._per_epoch_validation_loss)
     
   ''' Runs our model on unseen validation data to check we are not overfitting to training data
   '''
-  def run_on_valdiation_data(self, display_outputs: bool = False, for_segmentaiton=False) -> None:
+  def run_on_validation_data(self, display_outputs: bool = False, for_segmentation: bool = False) -> None:
     print('Running Validation Step...')
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     self._model = self._model.to(device)
+    total_epoch_validation_loss = 0
     for i, data_indexes in enumerate(self._validation_loader):
       self._model.eval()
       with torch.no_grad():
-        total_validation_loss = 0
         input_data, output_data = self._get_data_for_indexes(data_indexes, device)
         model_output = self._model(input_data)
-        loss = self._loss_func(model_output, output_data)  
+        loss = self._loss_func(model_output, output_data)
+        total_epoch_validation_loss += (loss.item() * len(data_indexes))
+
         model_output = (model_output>self._OUTPUT_THRESHOLD).float()
-        total_validation_loss += loss
         if i % 50 == 0:
-          print(f'Batch {i}, Current Batch Loss: {loss}')
-        if i % 500 == 0 and display_outputs and for_segmentaiton:
+          print(f'Validation Batch {i}, Current Batch Loss: {loss}')
+        if i % 500 == 0 and display_outputs and for_segmentation:
           plot_predicted_and_actual(input_data[0].cpu(), model_output[0].cpu(), output_data[0].cpu())
         elif i % 500 == 0 and display_outputs:
           self._display_output_for_attributes_model(input_data[0].cpu(), output_data[0].cpu(), model_output[0].cpu())
-    total_validation_loss /= len(self._validation_examples)
-    print(f'Validation Loss: {total_validation_loss}')
-    if display_outputs and for_segmentaiton:
+    total_epoch_validation_loss /= len(self._validation_examples)
+    self._per_epoch_validation_loss.append(total_epoch_validation_loss)
+    print(f'Validation Loss: {total_epoch_validation_loss}')
+    if display_outputs and for_segmentation:
       plot_predicted_and_actual(input_data[0].cpu(), model_output[0].cpu(), output_data[0].cpu())
     elif display_outputs:
       self._display_output_for_attributes_model(input_data[0].cpu(), output_data[0].cpu(), model_output[0].cpu())
+    print('Finished Validation Step')
+    print()
 
   ''' Displays an example of the output from the attributes model - displays input image alongside this
   '''
