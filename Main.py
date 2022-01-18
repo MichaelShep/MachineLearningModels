@@ -24,7 +24,7 @@ def run_segmentation_network(dataset_directory: str) -> None:
         model.load_state_dict(torch.load(model_save_name + '.pt'))
     model_training = Training(model, dataset, for_segmentation=True, batch_size=7, 
                                 learning_rate=0.0001, save_name=model_save_name + '.pt',
-                                num_epochs=1, display_outputs=False)
+                                num_epochs=10, display_outputs=False)
     model_training.train()
     save_model_for_mobile(model, model_save_name, dataset[0][0].unsqueeze(dim=0))
 
@@ -35,12 +35,12 @@ def run_attributes_network(dataset_directory: str) -> None:
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     model = AttributesNetwork(dataset.get_num_attributes()).to(device=device)
-    model_save_name = 'attributes_model_2'
+    model_save_name = 'attributes_model_3'
     if os.path.exists(model_save_name + '.pt'):
         model.load_state_dict(torch.load(model_save_name + '.pt'))
-    model_training = Training(model, dataset, for_segmentation=False, batch_size=15, 
-                                learning_rate=0.001, save_name=model_save_name + '.pt', 
-                                num_epochs=10, display_outputs=False)
+    model_training = Training(model, dataset, for_segmentation=False, batch_size=20, 
+                                learning_rate=0.0001, save_name=model_save_name + '.pt', 
+                                num_epochs=20, display_outputs=True)
     model_training.train()
     save_model_for_mobile(model, model_save_name, dataset[0][0].unsqueeze(dim=0))
 

@@ -26,11 +26,11 @@ class Training():
     self._training_examples, self._validation_examples = dataset.get_train_test_split(self._NUM_TRAINING_EXAMPLES)
 
     self._training_loader = DataLoader(self._training_examples, batch_size=batch_size, shuffle=True, num_workers=2)
-    self._validation_loader = DataLoader(self._validation_examples, batch_size=batch_size, shuffle=False, num_workers=2)
+    self._validation_loader = DataLoader(self._validation_examples, batch_size=batch_size, shuffle=True, num_workers=2)
 
     #Using Per Pixel Mean Squared Error for our loss and Stochastic Gradient Descent for our optimiser
     self._loss_func = nn.BCEWithLogitsLoss()
-    self._optim = torch.optim.Adam(self._model.parameters(), lr=learning_rate)
+    self._optim = torch.optim.Adam(self._model.parameters(), lr=learning_rate, betas=(0.5, 0.999))
     self._per_epoch_training_loss = []
     self._per_epoch_validation_loss = []
 
@@ -92,6 +92,7 @@ class Training():
       print('Saving Model...')  
       total_epoch_loss /= len(self._training_examples)
       self._per_epoch_training_loss.append(total_epoch_loss)
+      print('Average Loss for epoch:', total_epoch_loss)
       torch.save(self._model.state_dict(), self._save_name)
       print('Model Saved.')
       self.run_on_validation_data(display_outputs=self._display_outputs, for_segmentation=self._for_segmentation)
