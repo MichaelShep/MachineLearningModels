@@ -6,6 +6,7 @@ from CelebADataset import CelebADataset
 from LfwDataset import LfwDataset
 from SegmentationNetwork import SegmentationNetwork
 from AttributesNetwork import AttributesNetwork
+from MultiNetwork import MultiNetwork
 from Training import Training
 import torch
 from Helper import save_model_for_mobile
@@ -43,6 +44,11 @@ def run_attributes_network(dataset_directory: str) -> None:
                                 num_epochs=20, display_outputs=True)
     model_training.train()
     save_model_for_mobile(model, model_save_name, dataset[0][0].unsqueeze(dim=0))
+
+''' Runs the code to start the multi task network
+'''
+def run_multi_network(dataset_directory: str) -> None:
+    model = MultiNetwork()
 
 ''' Entry point for the program
 '''
