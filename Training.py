@@ -3,7 +3,6 @@
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
-from SegmentationNetwork import SegmentationNetwork
 from CelebADataset import CelebADataset
 from typing import Tuple
 from Helper import plot_predicted_and_actual, display_image, plot_loss_list
@@ -15,11 +14,13 @@ class Training():
   ''' Splits the data into training and testing data and sets up data loader so data can be dealt with in
       batches
   '''
-  def __init__(self, model: SegmentationNetwork, dataset: CelebADataset, for_segmentation: bool,
-               batch_size: int, learning_rate: float, save_name: str, num_epochs: int, display_outputs: bool):
+  def __init__(self, model: nn.Module, dataset: CelebADataset,batch_size: int, learning_rate: float, 
+                save_name: str, num_epochs: int, display_outputs: bool, for_segmentation: bool = False,
+                for_multi: bool = False,):
     self._model = model
     self._dataset = dataset
     self._for_segmentation = for_segmentation
+    self._for_multi = for_multi
     self._save_name = save_name
     self._display_outputs = display_outputs
     self._num_epochs = num_epochs
@@ -40,12 +41,23 @@ class Training():
     input_values = []
     output_values = []
 
+    #Used for the multi network
+    segmentation_values = []
+    attribute_values = []
+
     for index_tensor in indexes:
       element = self._dataset[index_tensor.item()]
       input_values.append(element[0])
-      output_values.append(element[1])
+      if not self._for_multi:
+        output_values.append(element[1])
+      else:
+        segmentation_values.append(element[1][0])
+        attribute_values.append(element[1][1])
  
-    return (torch.stack(input_values).to(device), torch.stack(output_values).to(device))
+    if not self._for_multi:
+      return (torch.stack(input_values).to(device), torch.stack(output_values).to(device))
+    else:
+      return (torch.stack(input_values).to(device), torch.stack(segmentation_values).to(device), torch.stack(attribute_values).to(device))
 
 
   ''' Performs the actual training using our training data and model
@@ -99,6 +111,36 @@ class Training():
     
     #Show training loss curve once the model has been trained
     plot_loss_list(self._per_epoch_training_loss, self._per_epoch_validation_loss)
+
+  ''' Training loop for the multi learning model
+  '''
+  def train_multi(self) -> None:
+    for epoch in range(self._num_epochs):
+      self._model.train()
+      total_epoch_loss = 0
+      for i, data_indexes in enumerate(self._training_loader):
+        input_data, segmentation_output, attribute_output = self._get_data_for_indexes(data_indexes, 'cuda' if torch.cuda.is_available() else 'cpu')
+        model_output = self._model(input_data)
+
+        segmentation_loss = self._loss_func(model_output[0], segmentation_output)
+        attribute_loss = self._loss_func(model_output[1], attribute_output)
+        joint_loss = segmentation_loss + attribute_loss
+
+        total_epoch_loss += (segmentation_loss.item() + attribute_loss.item()) * len(data_indexes)
+
+        self._optim.zero_grad()
+        joint_loss.backward()
+        self._optim.step()
+
+        if i % 50 == 0:
+          print('Epoch:', epoch, 'Batch:', i, 'Segmentation Loss:', segmentation_loss.item(), 'Attribute Loss:', attribute_loss.item())
+
+        del input_data, segmentation_output, attribute_output, model_output, segmentation_loss, attribute_loss
+        torch.cuda.empty_cache()
+
+      print('Saving Model...')
+      torch.save(self._model.state_dict(), self._save_name)
+      print('Model Saved')
     
   ''' Runs our model on unseen validation data to check we are not overfitting to training data
   '''

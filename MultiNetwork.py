@@ -105,7 +105,6 @@ class MultiNetwork(nn.Module):
     '''
     def _perform_attributes_path(self, x: torch.Tensor) -> torch.Tensor:
         x = self._conv13(x)
-        print(x.shape)
 
         x = x.view(x.size(0), -1) #Flatten input so it can be passed to linear layers
 

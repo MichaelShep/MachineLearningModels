@@ -1,6 +1,7 @@
 ''' Main script, brings everything together - creates, trains and tests model '''
 
 from cgi import test
+from lzma import FORMAT_AUTO
 import sys
 import os.path
 from CelebADataset import CelebADataset
@@ -56,6 +57,9 @@ def run_multi_network(dataset_directory: str) -> None:
     model_save_name = 'multi_model'
     if os.path.exists(model_save_name + '.pt'):
         model.load_state_dict(torch.load(model_save_name + '.pt'))
+    model_training = Training(model, dataset=dataset, for_multi=True, batch_size = 7, learning_rate=0.001,
+                                save_name=model_save_name + '.pt', num_epochs=20, display_outputs=True)
+    model_training.train_multi()
 
 
 ''' Entry point for the program
