@@ -49,6 +49,7 @@ def run_attributes_network(dataset_directory: str) -> None:
 '''
 def run_multi_network(dataset_directory: str) -> None:
     dataset = CelebADataset(dataset_directory, for_multi=True)
+    print(dataset[0][1].shape)
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     model = MultiNetwork().to(device=device)

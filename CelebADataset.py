@@ -102,8 +102,7 @@ class CelebADataset:
     elif self._for_multi:
       image_output = self._get_output_images(idx)
       attribute_output = torch.Tensor(self._attributes[idx])
-      #Output is a tuple - first element is the image outputs and second is attributes
-      output = (image_output, attribute_output)
+      output = self._create_padded_attribute_output(attribute_output)
     #For attributes network, output is the list of attributes associated with that image
     else:
       output = torch.Tensor(self._attributes[idx])
@@ -140,3 +139,12 @@ class CelebADataset:
       if attribute_list[i] == 1:
         output_string += self._attribute_names[i] + ', '
     return output_string
+
+  ''' Converts our 40 element list of output attributes of a image into a 512x512 image so it can be used for the multi training
+  '''
+  def _create_padded_attribute_output(self, attribute_output: torch.Tensor) -> torch.Tensor:
+    #Make first row contain our 40 attributes then filled with 0's
+    first_row = torch.cat((attribute_output, torch.zeros(472)), 0)
+    remaining_rows = torch.zeros([511, 512])
+    complete_tensor = torch.cat((first_row.unsqueeze(0), remaining_rows), 0)
+    return complete_tensor
