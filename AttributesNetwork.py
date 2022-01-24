@@ -29,10 +29,6 @@ class AttributesNetwork(nn.Module):
         self._res2 = create_conv_layer(in_chan=64, out_chan=64)
         self._res3 = create_conv_layer(in_chan=96, out_chan=96)
 
-        self._batchnorm1 = nn.BatchNorm2d(32)
-        self._batchnorm2 = nn.BatchNorm2d(64)
-        self._batchnorm3 = nn.BatchNorm2d(96)
-
         self._lin1 = nn.Linear(in_features=32*16*16, out_features=256)
         self._lin2 = nn.Linear(in_features=256, out_features=self._num_attributes)
         
@@ -42,35 +38,30 @@ class AttributesNetwork(nn.Module):
     '''
     def forward(self, x) -> torch.Tensor:
         x = self._conv1(x) #Outputs Batch x 512 x 512 x 16
-        #x = self._batchnorm1(x)
         x = self._relu(x)
         x = self._max_pool(x) #Outputs Batch x 256 x 256 x 16
 
         x = self._perform_residual(self._res1, x)
 
         x = self._conv2(x) #Outputs Batch x 256 x 256 x 32
-        #x = self._batchnorm2(x)
         x = self._relu(x)
         x = self._max_pool(x) #Outputs Batch x 128 x 128 x 32
 
         x = self._perform_residual(self._res2, x)
 
         x = self._conv3(x) #Outputs Batch x 128 x 128 x 64
-        #x = self._batchnorm3(x)
         x = self._relu(x)
         x = self._max_pool(x) #Outputs Batch x 64 x 64 x 64
 
         x = self._perform_residual(self._res3, x)
 
         x = self._conv4(x)
-        #x = self._batchnorm2(x)
         x = self._relu(x)
         x = self._max_pool(x)
 
         x = self._perform_residual(self._res2, x)
 
         x = self._conv5(x)
-        #x = self._batchnorm1(x)
         x = self._relu(x)
         x = self._max_pool(x)
 
@@ -86,7 +77,6 @@ class AttributesNetwork(nn.Module):
         return x
 
     ''' Performs a residual connection step using a given Conv layer
-
     '''
     def _perform_residual(self, conv_layer: nn.Conv2d, x: torch.Tensor) -> torch.Tensor:
         inital_x = x

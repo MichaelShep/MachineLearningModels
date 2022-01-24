@@ -1,5 +1,6 @@
 ''' Main script, brings everything together - creates, trains and tests model '''
 
+from cgi import test
 import sys
 import os.path
 from CelebADataset import CelebADataset
@@ -49,10 +50,9 @@ def run_attributes_network(dataset_directory: str) -> None:
 '''
 def run_multi_network(dataset_directory: str) -> None:
     dataset = CelebADataset(dataset_directory, for_multi=True)
-    print(dataset[0][1].shape)
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    model = MultiNetwork().to(device=device)
+    model = MultiNetwork(dataset.get_num_output_masks(), dataset.get_num_attributes()).to(device=device)
     model_save_name = 'multi_model'
     if os.path.exists(model_save_name + '.pt'):
         model.load_state_dict(torch.load(model_save_name + '.pt'))
