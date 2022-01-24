@@ -1,6 +1,7 @@
 ''' Loads all our data from the CelebAHQ Dataset and formats it ready for use with Pytorch '''
 
 import os
+from matplotlib import image
 from torch.utils.data import random_split, Subset
 import torch
 from typing import Tuple, List
@@ -102,7 +103,8 @@ class CelebADataset:
     elif self._for_multi:
       image_output = self._get_output_images(idx)
       attribute_output = torch.Tensor(self._attributes[idx])
-      output = self._create_padded_attribute_output(attribute_output)
+      padded_attribute_output = self._create_padded_attribute_output(attribute_output)
+      output = torch.cat((image_output, padded_attribute_output), 0)
     #For attributes network, output is the list of attributes associated with that image
     else:
       output = torch.Tensor(self._attributes[idx])
@@ -143,8 +145,9 @@ class CelebADataset:
   ''' Converts our 40 element list of output attributes of a image into a 512x512 image so it can be used for the multi training
   '''
   def _create_padded_attribute_output(self, attribute_output: torch.Tensor) -> torch.Tensor:
+    required_output_size = 512
     #Make first row contain our 40 attributes then filled with 0's
-    first_row = torch.cat((attribute_output, torch.zeros(472)), 0)
-    remaining_rows = torch.zeros([511, 512])
+    first_row = torch.cat((attribute_output, torch.zeros(required_output_size - len(attribute_output))), 0)
+    remaining_rows = torch.zeros([required_output_size - 1, required_output_size])
     complete_tensor = torch.cat((first_row.unsqueeze(0), remaining_rows), 0)
-    return complete_tensor
+    return complete_tensor.unsqueeze(0)
