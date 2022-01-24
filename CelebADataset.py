@@ -18,8 +18,9 @@ class CelebADataset:
   ''' Constructor for the ImageDataset class
       Takes the location of the dataset and uses this to get the location of images, masks and annotations
   '''
-  def __init__(self, base_dir: str, for_segmentation: bool):
+  def __init__(self, base_dir: str, for_segmentation: bool = False, for_multi: bool = False):
     self._for_segmentation = for_segmentation
+    self._for_multi = for_multi
     self._img_dir = os.path.join(base_dir, 'CelebA-HQ-img')
     self._feature_mask_dir = os.path.join(base_dir, 'CelebAMask-HQ-mask-anno')
     self._attribute_anno_file = os.path.join(base_dir, 'CelebAMask-HQ-attribute-anno.txt')
@@ -96,8 +97,14 @@ class CelebADataset:
 
     #For segmentation network, need to return output images, for attributes need to return attributes list
     if self._for_segmentation:
-      #For now, output only ever has 1 element as will always be the skin map
       output = self._get_output_images(idx)
+    #For multi network, need both the segmentation masks for the image and the list of attributes
+    elif self._for_multi:
+      image_output = self._get_output_images(idx)
+      attribute_output = torch.Tensor(self._attributes[idx])
+      #Output is a tuple - first element is the image outputs and second is attributes
+      output = (image_output, attribute_output)
+    #For attributes network, output is the list of attributes associated with that image
     else:
       output = torch.Tensor(self._attributes[idx])
 

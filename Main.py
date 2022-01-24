@@ -48,12 +48,19 @@ def run_attributes_network(dataset_directory: str) -> None:
 ''' Runs the code to start the multi task network
 '''
 def run_multi_network(dataset_directory: str) -> None:
-    model = MultiNetwork()
+    dataset = CelebADataset(dataset_directory, for_multi=True)
+
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    model = MultiNetwork().to(device=device)
+    model_save_name = 'multi_model'
+    if os.path.exists(model_save_name + '.pt'):
+        model.load_state_dict(torch.load(model_save_name + '.pt'))
+
 
 ''' Entry point for the program
 '''
 if __name__ == '__main__':
     current_directory = sys.path[0]
     dataset_directory = os.path.join(os.path.split(current_directory)[0], 'CelebAMask-HQ')
-    run_attributes_network(dataset_directory)
+    run_multi_network(dataset_directory)
     

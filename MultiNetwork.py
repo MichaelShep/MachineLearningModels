@@ -9,7 +9,7 @@ class MultiNetwork(nn.Module):
         All layers of the network and their parameters get defined here
     '''
     def __init__(self):
-        super.__init__()
+        super(MultiNetwork, self).__init__()
 
     ''' Performs a forward pass through all the layers of the network
         Input is a image of size 512x512 with 3 input channels
