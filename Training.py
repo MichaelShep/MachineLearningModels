@@ -6,6 +6,7 @@ from torch.utils.data import DataLoader
 from CelebADataset import CelebADataset
 from typing import Tuple
 from Helper import plot_predicted_and_actual, display_image, plot_loss_list
+from NetworkType import NetworkType
 
 class Training():
   _NUM_TRAINING_EXAMPLES = 20000
@@ -15,12 +16,10 @@ class Training():
       batches
   '''
   def __init__(self, model: nn.Module, dataset: CelebADataset,batch_size: int, learning_rate: float, 
-                save_name: str, num_epochs: int, display_outputs: bool, for_segmentation: bool = False,
-                for_multi: bool = False,):
+                save_name: str, num_epochs: int, display_outputs: bool, network_type: NetworkType):
     self._model = model
     self._dataset = dataset
-    self._for_segmentation = for_segmentation
-    self._for_multi = for_multi
+    self._network_type = network_type
     self._save_name = save_name
     self._display_outputs = display_outputs
     self._num_epochs = num_epochs
@@ -48,13 +47,13 @@ class Training():
     for index_tensor in indexes:
       element = self._dataset[index_tensor.item()]
       input_values.append(element[0])
-      if not self._for_multi:
+      if self._network_type != NetworkType.MULTI:
         output_values.append(element[1])
       else:
         segmentation_values.append(element[1][0])
         attribute_values.append(element[1][1])
  
-    if not self._for_multi:
+    if self._network_type != NetworkType.MULTI:
       return (torch.stack(input_values).to(device), torch.stack(output_values).to(device))
     else:
       return (torch.stack(input_values).to(device), torch.stack(segmentation_values).to(device), torch.stack(attribute_values).to(device))
@@ -64,7 +63,7 @@ class Training():
   '''
   def train(self) -> None:
     #Run on validation data before doing any training so that we get an inital value for our loss
-    self.run_on_validation_data(display_outputs=self._display_outputs, for_segmentation=self._for_segmentation)
+    self.run_on_validation_data(display_outputs=self._display_outputs)
     for epoch in range(self._num_epochs):
       self._model.train()
       total_epoch_loss = 0
@@ -92,7 +91,7 @@ class Training():
           torch.save(self._model.state_dict(), self._save_name)
           print('Model Saved.')
 
-        if i % 500 == 0 and self._for_segmentation and self._display_outputs:
+        if i % 500 == 0 and self._network_type == NetworkType.SEGMENTATION and self._display_outputs:
           plot_predicted_and_actual(input_data[0].cpu(), model_output[0].cpu(), output_data[0].cpu())
         elif i % 500 == 0 and self._display_outputs:
           self._display_output_for_attributes_model(input_data[0].cpu(), output_data[0].cpu(), model_output[0].cpu())
@@ -107,7 +106,7 @@ class Training():
       print('Average Loss for epoch:', total_epoch_loss)
       torch.save(self._model.state_dict(), self._save_name)
       print('Model Saved.')
-      self.run_on_validation_data(display_outputs=self._display_outputs, for_segmentation=self._for_segmentation)
+      self.run_on_validation_data(display_outputs=self._display_outputs)
     
     #Show training loss curve once the model has been trained
     plot_loss_list(self._per_epoch_training_loss, self._per_epoch_validation_loss)
@@ -144,7 +143,7 @@ class Training():
     
   ''' Runs our model on unseen validation data to check we are not overfitting to training data
   '''
-  def run_on_validation_data(self, display_outputs: bool = False, for_segmentation: bool = False) -> None:
+  def run_on_validation_data(self, display_outputs: bool = False) -> None:
     print('Running Validation Step...')
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     self._model = self._model.to(device)
@@ -160,14 +159,14 @@ class Training():
         model_output = (model_output>self._OUTPUT_THRESHOLD).float()
         if i % 50 == 0:
           print(f'Validation Batch {i}, Current Batch Loss: {loss}')
-        if i % 500 == 0 and display_outputs and for_segmentation:
+        if i % 500 == 0 and display_outputs and self._network_type == NetworkType.SEGMENTATION:
           plot_predicted_and_actual(input_data[0].cpu(), model_output[0].cpu(), output_data[0].cpu())
         elif i % 500 == 0 and display_outputs:
           self._display_output_for_attributes_model(input_data[0].cpu(), output_data[0].cpu(), model_output[0].cpu())
     total_epoch_validation_loss /= len(self._validation_examples)
     self._per_epoch_validation_loss.append(total_epoch_validation_loss)
     print(f'Validation Loss: {total_epoch_validation_loss}')
-    if display_outputs and for_segmentation:
+    if display_outputs and self._network_type == NetworkType.SEGMENTATION:
       plot_predicted_and_actual(input_data[0].cpu(), model_output[0].cpu(), output_data[0].cpu())
     elif display_outputs:
       self._display_output_for_attributes_model(input_data[0].cpu(), output_data[0].cpu(), model_output[0].cpu())

@@ -7,6 +7,7 @@ from typing import Tuple, List
 from torchvision import transforms # type: ignore
 from PIL import Image # type: ignore
 import glob
+from NetworkType import NetworkType
 
 class CelebADataset:
   _ITEMS_PER_MAP_FOLDER = 2000
@@ -18,9 +19,8 @@ class CelebADataset:
   ''' Constructor for the ImageDataset class
       Takes the location of the dataset and uses this to get the location of images, masks and annotations
   '''
-  def __init__(self, base_dir: str, for_segmentation: bool = False, for_multi: bool = False):
-    self._for_segmentation = for_segmentation
-    self._for_multi = for_multi
+  def __init__(self, base_dir: str, network_type: NetworkType):
+    self._network_type = network_type
     self._img_dir = os.path.join(base_dir, 'CelebA-HQ-img')
     self._feature_mask_dir = os.path.join(base_dir, 'CelebAMask-HQ-mask-anno')
     self._attribute_anno_file = os.path.join(base_dir, 'CelebAMask-HQ-attribute-anno.txt')
@@ -96,10 +96,10 @@ class CelebADataset:
     input_image = self._normalize_transform(self._tensor_transform(Image.open(os.path.join(self._img_dir, str(idx) + '.jpg')).resize((self._REDUCED_IMAGE_SIZE, self._REDUCED_IMAGE_SIZE))))
 
     #For segmentation network, need to return output images, for attributes need to return attributes list
-    if self._for_segmentation:
+    if self._network_type == NetworkType.SEGMENTATION:
       output = self._get_output_images(idx)
     #For multi network, need both the segmentation masks for the image and the list of attributes
-    elif self._for_multi:
+    elif self._network_type == NetworkType.MULTI:
       image_output = self._get_output_images(idx)
       attribute_output = torch.Tensor(self._attributes[idx])
       #Output is a tuple - first element is the image outputs and second is attributes
