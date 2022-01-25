@@ -4,7 +4,7 @@
 
 import torch.nn as nn
 import torch
-from Helper import create_conv_layer, create_double_conv
+from Helper import create_conv_layer, perform_residual
 
 class AttributesNetwork(nn.Module):
     ''' Constructor for the class
@@ -19,69 +19,53 @@ class AttributesNetwork(nn.Module):
         self._max_pool = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
         self._dropout = nn.Dropout(p=0.5)
 
-        self._conv1 = create_conv_layer(in_chan=3, out_chan=32)
-        self._conv2 = create_conv_layer(in_chan=32, out_chan=64)
-        self._conv3 = create_conv_layer(in_chan=64, out_chan=96)
-        self._conv4 = create_conv_layer(in_chan=96, out_chan=64)
-        self._conv5 = create_conv_layer(in_chan=64, out_chan=32)
+        self._conv_layers = nn.ModuleList([
+            create_conv_layer(in_chan=3, out_chan=32), create_conv_layer(in_chan=32, out_chan=64),
+            create_conv_layer(in_chan=64, out_chan=96), create_conv_layer(in_chan=96, out_chan=64),
+            create_conv_layer(in_chan=64, out_chan=32)
+        ])
 
-        self._res1 = create_conv_layer(in_chan=32, out_chan=32)
-        self._res2 = create_conv_layer(in_chan=64, out_chan=64)
-        self._res3 = create_conv_layer(in_chan=96, out_chan=96)
+        self._res_layers = nn.ModuleList([
+            create_conv_layer(in_chan=32, out_chan=32), create_conv_layer(in_chan=64, out_chan=64),
+            create_conv_layer(in_chan=96, out_chan=96), create_conv_layer(in_chan=64, out_chan=64),
+            create_conv_layer(in_chan=32, out_chan=32)
+        ])
 
-        self._lin1 = nn.Linear(in_features=32*16*16, out_features=256)
-        self._lin2 = nn.Linear(in_features=256, out_features=self._num_attributes)
-        
+        self._lin_layers = nn.ModuleList([
+            nn.Linear(in_features=32*16*16, out_features=256),
+            nn.Linear(in_features=256, out_features=self._num_attributes)
+        ])
+
+    ''' Performs a conv layer for the network - followed by relu, pooling and residual
+    '''
+    def _perform_conv_layer(self, x: torch.Tensor, idx: int) -> torch.Tensor:
+        x = self._conv_layers[idx](x)
+        x = self._relu(x)
+        x = self._max_pool(x)
+        x = perform_residual(self._res_layers[idx], x)
+        return x
+
+    ''' Performs an inner linear layer for the network - followed by dropout and relu
+    '''
+    def _perform_linear_layer(self, x: torch.Tensor, idx: int) -> torch.Tensor:
+        x = self._lin_layers[idx](x)
+        x = self._dropout(x)
+        x = self._relu(x)
+        return x    
 
     ''' Performs a forward pass through all the layers of the network
         Input is a image of size 512x512 with 3 input channels
     '''
     def forward(self, x) -> torch.Tensor:
-        x = self._conv1(x) #Outputs Batch x 512 x 512 x 16
-        x = self._relu(x)
-        x = self._max_pool(x) #Outputs Batch x 256 x 256 x 16
+        for i in range(len(self._conv_layers)):
+            x = self._perform_conv_layer(x, i)
 
-        x = self._perform_residual(self._res1, x)
+        #Flatten input so it can be passed to linear layers
+        x = x.view(x.size(0), -1)
 
-        x = self._conv2(x) #Outputs Batch x 256 x 256 x 32
-        x = self._relu(x)
-        x = self._max_pool(x) #Outputs Batch x 128 x 128 x 32
+        for i in range(len(self._lin_layers) - 1):
+            x = self._perform_linear_layer(x, i)
 
-        x = self._perform_residual(self._res2, x)
-
-        x = self._conv3(x) #Outputs Batch x 128 x 128 x 64
-        x = self._relu(x)
-        x = self._max_pool(x) #Outputs Batch x 64 x 64 x 64
-
-        x = self._perform_residual(self._res3, x)
-
-        x = self._conv4(x)
-        x = self._relu(x)
-        x = self._max_pool(x)
-
-        x = self._perform_residual(self._res2, x)
-
-        x = self._conv5(x)
-        x = self._relu(x)
-        x = self._max_pool(x)
-
-        x = self._perform_residual(self._res1, x)
-
-        x = x.view(x.size(0), -1) #Flatten input so it can be passed to linear layers
-
-        x = self._lin1(x) #Outputs Batch x 512
-        x = self._dropout(x)
-        x = self._relu(x)
-
-        x = self._lin2(x) #Outputs Batch x 64
+        #We want the raw output (without activiation) from the final layer of the network
+        x = self._lin_layers[len(self._lin_layers) - 1](x)
         return x
-
-    ''' Performs a residual connection step using a given Conv layer
-    '''
-    def _perform_residual(self, conv_layer: nn.Conv2d, x: torch.Tensor) -> torch.Tensor:
-        inital_x = x
-        new_x = conv_layer(x)
-        new_x = self._relu(new_x)
-        new_x = conv_layer(x)
-        new_x = new_x + inital_x
-        return new_x
