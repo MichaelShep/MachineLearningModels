@@ -5,7 +5,6 @@ from lzma import FORMAT_AUTO
 import sys
 import os.path
 from CelebADataset import CelebADataset
-from LfwDataset import LfwDataset
 from SegmentationNetwork import SegmentationNetwork
 from AttributesNetwork import AttributesNetwork
 from MultiNetwork import MultiNetwork
