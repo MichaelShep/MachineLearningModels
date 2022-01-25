@@ -42,18 +42,19 @@ def display_data_element(input_image: torch.Tensor, output_masks: torch.Tensor, 
 
 ''' Creates a new convolution layer with some default parameters that are used within our networks
 '''
-def create_conv_layer(in_chan: int, out_chan: int, kernal_size=3, stride=1, padding=1) -> nn.Conv2d:
-  return nn.Conv2d(in_channels=in_chan, out_channels=out_chan, kernel_size=kernal_size, stride=stride, padding=padding)
+def create_conv_layer(in_chan: int, out_chan: int, device: str = 'cpu', kernal_size=3, stride=1, padding=1) -> nn.Conv2d:
+  return nn.Conv2d(in_channels=in_chan, out_channels=out_chan, 
+                  kernel_size=kernal_size, stride=stride, padding=padding).to(device)
 
 ''' Creates the double conv setup that is used within our networks
 '''
-def create_double_conv(in_chan: int, out_chan: int) -> nn.Sequential:
+def create_double_conv(in_chan: int, out_chan: int, device: str = 'cpu') -> nn.Sequential:
   return nn.Sequential(
-    create_conv_layer(in_chan=in_chan, out_chan=out_chan),
+    create_conv_layer(in_chan=in_chan, out_chan=out_chan, device=device),
     nn.ReLU(),
-    create_conv_layer(in_chan=out_chan, out_chan=out_chan),
+    create_conv_layer(in_chan=out_chan, out_chan=out_chan, device=device),
     nn.ReLU()
-  )
+  ).to(device)
 
 ''' Saves and optimizes a model so that it can be used with PyTorch mobile
 '''
@@ -73,3 +74,15 @@ def plot_loss_list(training_losses: List[float], validation_losses: List[float])
   plt.plot(indexes, training_losses, color='green')
   plt.plot(indexes, validation_losses, color='blue')
   plt.show()
+
+
+relu_layer = nn.ReLU()
+''' Performs a residual connection step using a given Conv layer
+'''
+def perform_residual(conv_layer: nn.Conv2d, x: torch.Tensor) -> torch.Tensor:
+    inital_x = x
+    new_x = conv_layer(x)
+    new_x = relu_layer(new_x)
+    new_x = conv_layer(x)
+    new_x = new_x + inital_x
+    return new_x
