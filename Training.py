@@ -84,7 +84,6 @@ class Training():
         self._optim.zero_grad()
         loss.backward()
         self._optim.step()
-
         model_output = self._threshold_outputs(model_output)   
 
         if i % 1000 == 0 and i != 0:
@@ -103,7 +102,7 @@ class Training():
       total_epoch_loss /= len(self._training_examples)
       self._per_epoch_training_loss.append(total_epoch_loss)
       print('Average Loss for epoch:', total_epoch_loss)
-      torch.save(self._model.state_dict(), self._save_name)
+      torch.save(self._model.state_dict(), self._save_name + '.pt')
       print('Model Saved.')
       self.run_on_validation_data()
     
@@ -124,8 +123,7 @@ class Training():
         #For multi-learning network, need to get loss of segmentation and attribute and combine together
         loss = self._compute_loss_and_display(model_output, output_one, output_two, i)
         total_epoch_validation_loss += (loss.item() * len(data_indexes))
-
-        model_output - self._threshold_outputs(model_output)
+        model_output = self._threshold_outputs(model_output)
 
         if self._display_outputs:
           self._display_outputs(input_data, model_output, output_one, output_two, i)

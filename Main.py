@@ -34,7 +34,7 @@ def run_model(network_type: NetworkType, batch_size: int, learning_rate: int,
         model.load_state_dict(torch.load(save_name + '.pt'))
     
     training = Training(model, dataset, batch_size, learning_rate, save_name, num_epochs, 
-                        display_outputs, network_type)
+                        display_outputs, network_type, device)
     training.train()
     save_model_for_mobile(model, save_name, dataset[0][0].unsqueeze(dim=0))
 
