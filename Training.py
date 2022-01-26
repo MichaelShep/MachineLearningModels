@@ -62,6 +62,10 @@ class Training():
   ''' Performs the actual training using our training data and model
   '''
   def train(self) -> None:
+    #If we are running the multi-learning network, use alternative training loop
+    if self._network_type == NetworkType.MULTI:
+      self._train_multi()
+      return
     #Run on validation data before doing any training so that we get an inital value for our loss
     self.run_on_validation_data(display_outputs=self._display_outputs)
     for epoch in range(self._num_epochs):
@@ -113,7 +117,7 @@ class Training():
 
   ''' Training loop for the multi learning model
   '''
-  def train_multi(self) -> None:
+  def _train_multi(self) -> None:
     for epoch in range(self._num_epochs):
       self._model.train()
       total_epoch_loss = 0
@@ -138,7 +142,7 @@ class Training():
         torch.cuda.empty_cache()
 
       print('Saving Model...')
-      torch.save(self._model.state_dict(), self._save_name)
+      torch.save(self._model.state_dict(), self._save_name + '.pt')
       print('Model Saved')
     
   ''' Runs our model on unseen validation data to check we are not overfitting to training data

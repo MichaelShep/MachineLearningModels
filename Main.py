@@ -3,14 +3,12 @@
 import sys
 import os.path
 
-from transformers import data
 from CelebADataset import CelebADataset
 from SegmentationNetwork import SegmentationNetwork
 from AttributesNetwork import AttributesNetwork
 from MultiNetwork import MultiNetwork
 from Training import Training
 import torch
-import torch.nn as nn
 from Helper import save_model_for_mobile
 from NetworkType import NetworkType
 
@@ -45,9 +43,9 @@ def run_model(network_type: NetworkType, batch_size: int, learning_rate: int,
 '''
 if __name__ == '__main__':
     #Uncomment this line to run the segmentation network
-    run_model(NetworkType.SEGMENTATION, 7, 0.0001, 10, 'segmentation_model', False)
+    #run_model(NetworkType.SEGMENTATION, 7, 0.0001, 10, 'segmentation_model', False)
     #Uncomment this line to run the atttributes network
     #run_model(NetworkType.ATTRIBUTE, 20, 0.0001, 20, 'attributes_model', False)
     #Uncomment this line to run the multi-learning network
-    #run_model(NetworkType.MULTI, 7, 0.0001, 20, 'multi_model', False)
+    run_model(NetworkType.MULTI, 7, 0.0001, 20, 'multi_model', False)
     
