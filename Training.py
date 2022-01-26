@@ -54,7 +54,7 @@ class Training():
         attribute_values.append(element[1][1])
  
     if self._network_type != NetworkType.MULTI:
-      return (torch.stack(input_values).to(device), torch.stack(output_values).to(device))
+      return (torch.stack(input_values).to(device), torch.stack(output_values).to(device), torch.tensor())
     else:
       return (torch.stack(input_values).to(device), torch.stack(segmentation_values).to(device), torch.stack(attribute_values).to(device))
 
@@ -62,21 +62,23 @@ class Training():
   ''' Performs the actual training using our training data and model
   '''
   def train(self) -> None:
-    #If we are running the multi-learning network, use alternative training loop
-    if self._network_type == NetworkType.MULTI:
-      self._train_multi()
-      return
     #Run on validation data before doing any training so that we get an inital value for our loss
     self.run_on_validation_data(display_outputs=self._display_outputs)
     for epoch in range(self._num_epochs):
       self._model.train()
       total_epoch_loss = 0
       for i, data_indexes in enumerate(self._training_loader):
-        input_data, output_data = self._get_data_for_indexes(data_indexes, 'cuda' if torch.cuda.is_available() else 'cpu')
+        input_data, output_one, output_two = self._get_data_for_indexes(data_indexes, 'cuda' if torch.cuda.is_available() else 'cpu')
         model_output = self._model(input_data)
 
-        #Perform actual learning - calculate loss value, perform back-prop and grad descent step
-        loss = self._loss_func(model_output, output_data)
+        #If multi-learning network, need to get a segmentation and attribute loss and combine together
+        if self._network_type == NetworkType.MULTI:
+          segmentation_loss = self._loss_func(model_output[0], output_one)
+          attribute_loss = self._loss_func(model_output[1], output_two)
+          loss = segmentation_loss + attribute_loss
+        else:
+          loss = self._loss_func(model_output, output_one)
+
         #Add an initial value of our tracked loss to be used as the starting point for the loss
         if len(self._per_epoch_training_loss) == 0:
           self._per_epoch_training_loss.append(loss.item())
@@ -86,22 +88,30 @@ class Training():
         self._optim.step()
 
         #Once all operations on model have been done, convert each pixel output to binary values
-        model_output = (model_output>self._OUTPUT_THRESHOLD).float()        
+        if self._network_type != NetworkType.MULTI:
+          model_output = (model_output>self._OUTPUT_THRESHOLD).float()
+        else:
+          model_output_0 = (model_output[0]>self._OUTPUT_THRESHOLD).float()
+          model_output_1 = (model_output[1]>self._OUTPUT_THRESHOLD).float()
+          model_output = (model_output_0, model_output_1)     
 
-        if i % 50 == 0:
+        if i % 50 == 0 and self._network_type != NetworkType.MULTI:
           print('Epoch:', epoch, 'Batch:', i, 'Loss:', loss.item())
+        elif i % 50 == 0:
+          print('Epoch:', epoch, 'Batch:', i, 'Segmentation Loss:', segmentation_loss.item(), 'Attribute Loss:', attribute_loss.item())
+
         if i % 1000 == 0 and i != 0:
           print('Saving Model...')
           torch.save(self._model.state_dict(), self._save_name)
           print('Model Saved.')
 
         if i % 500 == 0 and self._network_type == NetworkType.SEGMENTATION and self._display_outputs:
-          plot_predicted_and_actual(input_data[0].cpu(), model_output[0].cpu(), output_data[0].cpu())
-        elif i % 500 == 0 and self._display_outputs:
-          self._display_output_for_attributes_model(input_data[0].cpu(), output_data[0].cpu(), model_output[0].cpu())
+          plot_predicted_and_actual(input_data[0].cpu(), model_output[0].cpu(), output_one[0].cpu())
+        elif i % 500 == 0 and self._network_type == NetworkType.ATTRIBUTE and self._display_outputs:
+          self._display_output_for_attributes_model(input_data[0].cpu(), output_one[0].cpu(), model_output[0].cpu())
 
         #Clear all unneeded memory - without this will get a memory error
-        del input_data, output_data, model_output, loss
+        del input_data, output_one, output_two, model_output, loss
         torch.cuda.empty_cache()
 
       print('Saving Model...')  
@@ -114,36 +124,6 @@ class Training():
     
     #Show training loss curve once the model has been trained
     plot_loss_list(self._per_epoch_training_loss, self._per_epoch_validation_loss)
-
-  ''' Training loop for the multi learning model
-  '''
-  def _train_multi(self) -> None:
-    for epoch in range(self._num_epochs):
-      self._model.train()
-      total_epoch_loss = 0
-      for i, data_indexes in enumerate(self._training_loader):
-        input_data, segmentation_output, attribute_output = self._get_data_for_indexes(data_indexes, 'cuda' if torch.cuda.is_available() else 'cpu')
-        model_output = self._model(input_data)
-
-        segmentation_loss = self._loss_func(model_output[0], segmentation_output)
-        attribute_loss = self._loss_func(model_output[1], attribute_output)
-        joint_loss = segmentation_loss + attribute_loss
-
-        total_epoch_loss += (segmentation_loss.item() + attribute_loss.item()) * len(data_indexes)
-
-        self._optim.zero_grad()
-        joint_loss.backward()
-        self._optim.step()
-
-        if i % 50 == 0:
-          print('Epoch:', epoch, 'Batch:', i, 'Segmentation Loss:', segmentation_loss.item(), 'Attribute Loss:', attribute_loss.item())
-
-        del input_data, segmentation_output, attribute_output, model_output, segmentation_loss, attribute_loss
-        torch.cuda.empty_cache()
-
-      print('Saving Model...')
-      torch.save(self._model.state_dict(), self._save_name + '.pt')
-      print('Model Saved')
     
   ''' Runs our model on unseen validation data to check we are not overfitting to training data
   '''
@@ -155,25 +135,40 @@ class Training():
     for i, data_indexes in enumerate(self._validation_loader):
       self._model.eval()
       with torch.no_grad():
-        input_data, output_data = self._get_data_for_indexes(data_indexes, device)
+        input_data, output_one, output_two = self._get_data_for_indexes(data_indexes, device)
         model_output = self._model(input_data)
-        loss = self._loss_func(model_output, output_data)
+        #For multi-learning network, need to get loss of segmentation and attribute and combine together
+        if self._network_type == NetworkType.MULTI:
+          segmentation_loss = self._loss_func(model_output[0], output_one)
+          attribute_loss = self._loss_func(model_output[1], output_two)
+          loss = segmentation_loss + attribute_loss
+        else:
+          loss = self._loss_func(model_output, output_one)
         total_epoch_validation_loss += (loss.item() * len(data_indexes))
 
-        model_output = (model_output>self._OUTPUT_THRESHOLD).float()
-        if i % 50 == 0:
+        if self._network_type != NetworkType.MULTI:
+          model_output = (model_output>self._OUTPUT_THRESHOLD).float()
+        else:
+          model_output_0 = (model_output[0]>self._OUTPUT_THRESHOLD).float()
+          model_output_1 = (model_output[1]>self._OUTPUT_THRESHOLD).float()
+          model_output = (model_output_0, model_output_1) 
+
+        if i % 50 == 0 and self._network_type != NetworkType.MULTI:
           print(f'Validation Batch {i}, Current Batch Loss: {loss}')
+        elif i % 50 == 0:
+          print(f'Validation Batch {i}, Segmentation Loss: {segmentation_loss}, Attribute Loss: {attribute_loss}')
+
         if i % 500 == 0 and display_outputs and self._network_type == NetworkType.SEGMENTATION:
-          plot_predicted_and_actual(input_data[0].cpu(), model_output[0].cpu(), output_data[0].cpu())
-        elif i % 500 == 0 and display_outputs:
-          self._display_output_for_attributes_model(input_data[0].cpu(), output_data[0].cpu(), model_output[0].cpu())
+          plot_predicted_and_actual(input_data[0].cpu(), model_output[0].cpu(), output_one[0].cpu())
+        elif i % 500 == 0 and display_outputs and self._network_type == NetworkType.ATTRIBUTE:
+          self._display_output_for_attributes_model(input_data[0].cpu(), output_one[0].cpu(), model_output[0].cpu())
     total_epoch_validation_loss /= len(self._validation_examples)
     self._per_epoch_validation_loss.append(total_epoch_validation_loss)
     print(f'Validation Loss: {total_epoch_validation_loss}')
     if display_outputs and self._network_type == NetworkType.SEGMENTATION:
-      plot_predicted_and_actual(input_data[0].cpu(), model_output[0].cpu(), output_data[0].cpu())
-    elif display_outputs:
-      self._display_output_for_attributes_model(input_data[0].cpu(), output_data[0].cpu(), model_output[0].cpu())
+      plot_predicted_and_actual(input_data[0].cpu(), model_output[0].cpu(), output_one[0].cpu())
+    elif display_outputs and self._network_type == NetworkType.ATTRIBUTE:
+      self._display_output_for_attributes_model(input_data[0].cpu(), output_one[0].cpu(), model_output[0].cpu())
     print('Finished Validation Step')
     print()
 
