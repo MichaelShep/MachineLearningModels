@@ -4,20 +4,20 @@ import sys
 import os.path
 
 from CelebADataset import CelebADataset
-from SegmentationNetwork import SegmentationNetwork
-from AttributesNetwork import AttributesNetwork
-from MultiNetwork import MultiNetwork
+from Networks.SegmentationNetwork import SegmentationNetwork
+from Networks.AttributesNetwork import AttributesNetwork
+from Networks.MultiNetwork import MultiNetwork
 from Training import Training
 import torch
 from Helper import save_model_for_mobile
-from NetworkType import NetworkType
+from Networks.NetworkType import NetworkType
 
 ''' Runs and trains a model
 '''
 def run_model(network_type: NetworkType, batch_size: int, learning_rate: int, 
              num_epochs, save_name: str, display_outputs: bool = False):
-    current_directory = sys.path[0]
-    dataset_directory = os.path.join(os.path.split(current_directory)[0], 'CelebAMask-HQ')
+    base_directory = os.path.dirname(sys.path[0])
+    dataset_directory = os.path.join(os.path.split(base_directory)[0], 'CelebAMask-HQ')
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
     dataset = CelebADataset(dataset_directory, network_type)

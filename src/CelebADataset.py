@@ -7,7 +7,7 @@ from typing import Tuple, List
 from torchvision import transforms # type: ignore
 from PIL import Image # type: ignore
 import glob
-from NetworkType import NetworkType
+from Networks.NetworkType import NetworkType
 
 class CelebADataset:
   _ITEMS_PER_MAP_FOLDER = 2000

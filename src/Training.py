@@ -1,13 +1,12 @@
 ''' File where all the training of our model occurs '''
 
-from pyexpat import model
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 from CelebADataset import CelebADataset
 from typing import Tuple
 from Helper import plot_predicted_and_actual, display_image, plot_loss_list
-from NetworkType import NetworkType
+from Networks.NetworkType import NetworkType
 
 class Training():
   _NUM_TRAINING_EXAMPLES = 20000
