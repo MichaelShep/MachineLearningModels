@@ -15,12 +15,12 @@ class MultiNetwork(nn.Module):
         self._num_attributes = num_attributes
 
         #Network layers which are used by both paths
-        self._conv1 = create_double_conv(in_chan=3, out_chan=32)
-        self._conv2 = create_double_conv(in_chan=32, out_chan=64)
-        self._conv3 = create_double_conv(in_chan=64, out_chan=128)
-        self._conv4 = create_double_conv(in_chan=128, out_chan=256)
-        self._conv5 = create_double_conv(in_chan=256, out_chan=512)
-        self._conv6 = create_double_conv(in_chan=512, out_chan=1024)
+        self._conv1 = create_double_conv(in_chan=3, out_chan=16)
+        self._conv2 = create_double_conv(in_chan=16, out_chan=32)
+        self._conv3 = create_double_conv(in_chan=32, out_chan=64)
+        self._conv4 = create_double_conv(in_chan=64, out_chan=128)
+        self._conv5 = create_double_conv(in_chan=128, out_chan=256)
+        self._conv6 = create_double_conv(in_chan=256, out_chan=512)
 
         self._max_pool =  nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
 
@@ -31,25 +31,25 @@ class MultiNetwork(nn.Module):
         self._skip4 = torch.Tensor()
         self._skip5 = torch.Tensor()
 
-        self._res1 = create_conv_layer(in_chan=32, out_chan=32)
-        self._res2 = create_conv_layer(in_chan=64, out_chan=64)
-        self._res3 = create_conv_layer(in_chan=128, out_chan=128)
-        self._res4 = create_conv_layer(in_chan=256, out_chan=256)
-        self._res5 = create_conv_layer(in_chan=512, out_chan=512)
-        self._res6 = create_conv_layer(in_chan=1024, out_chan=1024)
+        self._res1 = create_conv_layer(in_chan=16, out_chan=16)
+        self._res2 = create_conv_layer(in_chan=32, out_chan=32)
+        self._res3 = create_conv_layer(in_chan=64, out_chan=64)
+        self._res4 = create_conv_layer(in_chan=128, out_chan=128)
+        self._res5 = create_conv_layer(in_chan=256, out_chan=256)
+        self._res6 = create_conv_layer(in_chan=512, out_chan=512)
 
         self._upsample = nn.Upsample(scale_factor=2)
 
-        self._conv7 = create_double_conv(in_chan=1024, out_chan=512)
-        self._conv8 = create_double_conv(in_chan=512, out_chan=256)
-        self._conv9 = create_double_conv(in_chan=256, out_chan=128)
-        self._conv10 = create_double_conv(in_chan=128, out_chan=64)
-        self._conv11 = create_double_conv(in_chan=64, out_chan=32)
-        self._conv12 = create_conv_layer(32, self._num_output_masks, kernal_size=1, padding=0)
+        self._conv7 = create_double_conv(in_chan=512, out_chan=256)
+        self._conv8 = create_double_conv(in_chan=256, out_chan=128)
+        self._conv9 = create_double_conv(in_chan=128, out_chan=64)
+        self._conv10 = create_double_conv(in_chan=64, out_chan=32)
+        self._conv11 = create_double_conv(in_chan=32, out_chan=16)
+        self._conv12 = create_conv_layer(16, self._num_output_masks, kernal_size=1, padding=0)
 
         #Layers that will only be used for the attributes part of the network
-        self._conv13 = create_conv_layer(in_chan=1024, out_chan=32)
-        self._lin1 = nn.Linear(in_features=32*8*8, out_features=256)
+        self._conv13 = create_conv_layer(in_chan=512, out_chan=16)
+        self._lin1 = nn.Linear(in_features=16*8*8, out_features=256)
         self._lin2 = nn.Linear(in_features=256, out_features=self._num_attributes)
 
         self._dropout = nn.Dropout(p=0.5)

@@ -56,7 +56,7 @@ class Training():
  
     if self._network_type != NetworkType.MULTI:
       return (torch.stack(input_values).to(self._device), torch.stack(output_values).to(self._device), 
-              torch.tensor())
+              torch.tensor(0).to(self._device))
     else:
       return (torch.stack(input_values).to(self._device), torch.stack(segmentation_values).to(self._device), 
               torch.stack(attribute_values).to(self._device))
@@ -68,6 +68,7 @@ class Training():
     #Run on validation data before doing any training so that we get an inital value for our loss
     self.run_on_validation_data()
     for epoch in range(self._num_epochs):
+      print('Epoch:', epoch)
       self._model.train()
       total_epoch_loss = 0
       for i, data_indexes in enumerate(self._training_loader):
@@ -87,7 +88,7 @@ class Training():
 
         if i % 1000 == 0 and i != 0:
           print('Saving Model...')
-          torch.save(self._model.state_dict(), self._save_name)
+          torch.save(self._model.state_dict(), self._save_name + '.pt')
           print('Model Saved.')
         
         if self._display_outputs:
@@ -122,7 +123,6 @@ class Training():
         #For multi-learning network, need to get loss of segmentation and attribute and combine together
         loss = self._compute_loss_and_display(model_output, output_one, output_two, i)
         total_epoch_validation_loss += (loss.item() * len(data_indexes))
-        model_output = self._threshold_outputs(model_output)
 
         if self._display_outputs:
           self._display_outputs(input_data, model_output, output_one, output_two, i)
@@ -152,6 +152,7 @@ class Training():
   def _display_outputs(self, input_data: torch.Tensor, model_output: torch.Tensor, 
                       output_one: torch.Tensor, output_two: torch.Tensor, batch_index: int) -> None:
     if batch_index % 500 == 0:
+      model_output = self._threshold_outputs(model_output)
       if self._network_type == NetworkType.SEGMENTATION:
         plot_predicted_and_actual(input_data[0].cpu(), model_output[0].cpu(), output_one[0].cpu())
       elif self._network_type == NetworkType.ATTRIBUTE:
