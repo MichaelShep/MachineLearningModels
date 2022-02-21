@@ -30,7 +30,10 @@ class Training():
     self._validation_loader = DataLoader(self._validation_examples, batch_size=batch_size, shuffle=True, num_workers=2)
 
     #Using Per Pixel Mean Squared Error for our loss and Stochastic Gradient Descent for our optimiser
-    self._loss_func = nn.BCEWithLogitsLoss()
+    if network_type == NetworkType.ATTRIBUTE:
+      self._loss_func = nn.MSELoss()
+    else:
+      self._loss_func = nn.BCEWithLogitsLoss()
     self._optim = torch.optim.Adam(self._model.parameters(), lr=learning_rate, betas=(0.5, 0.999))
     self._per_epoch_training_loss = []
     self._per_epoch_validation_loss = []
@@ -66,6 +69,7 @@ class Training():
   '''
   def train(self) -> None:
     #Run on validation data before doing any training so that we get an inital value for our loss
+    #UNCOMMENT BEFORE COMMITING
     self.run_on_validation_data()
     for epoch in range(self._num_epochs):
       print('Epoch:', epoch)
@@ -104,6 +108,7 @@ class Training():
       print('Average Loss for epoch:', total_epoch_loss)
       torch.save(self._model.state_dict(), self._save_name + '.pt')
       print('Model Saved.')
+      #UNCOMMENT BEFORE COMMITING FILES
       self.run_on_validation_data()
     
     #Show training loss curve once the model has been trained
@@ -124,6 +129,13 @@ class Training():
         loss = self._compute_loss_and_display(model_output, output_one, output_two, i)
         total_epoch_validation_loss += (loss.item() * len(data_indexes))
 
+        if self._network_type == NetworkType.ATTRIBUTE and i == 0:
+          print('Pre processed predicted output:', model_output[0])
+          model_output = self._threshold_outputs(model_output)
+          accuracy = self._model.evaluate_prediction_accuracy(model_output[0], output_one[0])
+          print('Example prediction accurracy:', accuracy)
+          print('Model Output:', model_output[0])
+          print('Actual Output:', output_one[0])
         if self._display_outputs:
           self._display_outputs(input_data, model_output, output_one, output_two, i)
     total_epoch_validation_loss /= len(self._validation_examples)
@@ -165,7 +177,8 @@ class Training():
   '''
   def _threshold_outputs(self, model_output: torch.Tensor) -> torch.Tensor:
     if self._network_type != NetworkType.MULTI:
-      return (model_output>self._OUTPUT_THRESHOLD).float()
+      threshold_output = (model_output>self._OUTPUT_THRESHOLD).float()
+      return threshold_output
     else:
       model_output_0 = (model_output[0]>self._OUTPUT_THRESHOLD).float()
       model_output_1 = (model_output[1]>self._OUTPUT_THRESHOLD).float()

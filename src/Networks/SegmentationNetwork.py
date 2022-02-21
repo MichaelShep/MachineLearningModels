@@ -73,3 +73,19 @@ class SegmentationNetwork(nn.Module):
     x = self._perform_expanding_path(x)
 
     return x
+
+  ''' Compares a prediction from our network to the actual image to get a measure of how accurate our network is
+      Works on the version of the image where all values are converted to 0s and 1s
+  '''
+  def evaluate_prediction_accuracy(predicted_image: torch.Tensor, actual_image: torch.Tensor) -> float:
+    correct_pixels = 0
+    for row in range(len(predicted_image)):
+      for col in range(len(predicted_image[row])):
+        if predicted_image[row][col] == actual_image[row][col]:
+          correct_pixels += 1
+
+    #Get the total number of pixels by multiplying the length of rows by length of cols
+    total_num_pixels = len(predicted_image) * len(predicted_image[0])
+    accuracy = float(correct_pixels) / float(total_num_pixels)
+
+    return accuracy
