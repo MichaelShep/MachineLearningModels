@@ -10,7 +10,7 @@ from Networks.NetworkType import NetworkType
 
 class Training():
   _NUM_TRAINING_EXAMPLES = 20000
-  _OUTPUT_THRESHOLD = 0.8
+  _OUTPUT_THRESHOLD = 0.5
 
   ''' Splits the data into training and testing data and sets up data loader so data can be dealt with in
       batches
@@ -69,7 +69,6 @@ class Training():
   '''
   def train(self) -> None:
     #Run on validation data before doing any training so that we get an inital value for our loss
-    #UNCOMMENT BEFORE COMMITING
     self.run_on_validation_data()
     for epoch in range(self._num_epochs):
       print('Epoch:', epoch)
@@ -87,13 +86,19 @@ class Training():
         total_epoch_loss += (loss.item() * len(data_indexes))
         self._optim.zero_grad()
         loss.backward()
-        self._optim.step()
-        model_output = self._threshold_outputs(model_output)   
+        self._optim.step() 
 
         if i % 1000 == 0 and i != 0:
           print('Saving Model...')
           torch.save(self._model.state_dict(), self._save_name + '.pt')
           print('Model Saved.')
+        elif i == 0:
+          print('Pre processed predicted output:', model_output[0])
+          model_output = self._threshold_outputs(model_output)
+          accuracy = self._model.evaluate_prediction_accuracy(model_output[0], output_one[0])
+          print('Example prediction accurracy:', accuracy)
+          print('Model Output:', model_output[0])
+          print('Actual Output:', output_one[0])
         
         if self._display_outputs:
           self._display_outputs(input_data, model_output, output_one, output_two, i)
