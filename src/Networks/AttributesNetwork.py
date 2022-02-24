@@ -19,6 +19,7 @@ class AttributesNetwork(nn.Module):
         self._relu = nn.ReLU()
         self._max_pool = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
         self._dropout = nn.Dropout(p=0.2)
+        self._sigmoid = nn.Sigmoid()
 
         self._res_layers = nn.ModuleList([
             create_conv_layer(in_chan=3, out_chan=8),
@@ -79,7 +80,7 @@ class AttributesNetwork(nn.Module):
 
         #Apply sigmoid to final layer to get values in range 0-1
         x = self._lin_layers[len(self._lin_layers) - 1](x)
-        #x = self._tanh(x)
+        x = self._sigmoid(x)
         return x
 
     ''' Calculates how accurate our predictions were for a specific image
