@@ -3,7 +3,7 @@
 
 import torch.nn as nn
 import torch
-from Helper import create_conv_layer, create_double_conv, perform_residual
+from Helper import create_conv_layer, create_double_conv
 
 class MultiNetwork(nn.Module):
     ''' Constructor for the class

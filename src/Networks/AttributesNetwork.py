@@ -4,7 +4,7 @@
 
 import torch.nn as nn
 import torch
-from Helper import create_conv_layer, perform_residual
+from Helper import create_conv_layer
 
 class AttributesNetwork(nn.Module):
     ''' Constructor for the class
@@ -36,25 +36,6 @@ class AttributesNetwork(nn.Module):
             nn.Linear(in_features=64, out_features=self._num_attributes)
         ])
 
-    ''' Performs a set of residuals - input may be smaller than output - in this case pad input
-    '''
-    def _perform_residual_layer(self, conv1: nn.Module, conv2: nn.Module, x: torch.Tensor):
-        inital_x = x
-        x = conv1(x)
-        x = self._relu(x)
-        x = conv2(x)
-
-        #Handle padding if output and input sizes are different
-        if conv1.in_channels < conv2.out_channels:        
-            extra_channels = conv2.out_channels - conv1.in_channels
-            elements_per_channel = x.shape[3]
-            zeros = torch.zeros((x.shape[0], extra_channels, elements_per_channel, elements_per_channel)).to(self._device)
-            inital_x = torch.cat((inital_x, zeros), dim=1)
-
-        x = x + inital_x
-        x = self._relu(x)
-        return x
-
     ''' Performs an inner linear layer for the network - followed by dropout and relu
     '''
     def _perform_linear_layer(self, x: torch.Tensor, idx: int) -> torch.Tensor:
@@ -68,7 +49,6 @@ class AttributesNetwork(nn.Module):
     '''
     def forward(self, x) -> torch.Tensor:
         for i in range(0, len(self._res_layers)):
-            #x = self._perform_residual_layer(self._res_layers[i], self._res_layers[i + 1], x)
             x = self._res_layers[i](x) 
             x = self._max_pool(x)
 
@@ -91,4 +71,4 @@ class AttributesNetwork(nn.Module):
             if predictions[i] == actual[i]:
                 correct_predictions += 1
 
-        return float(correct_predictions) / len(predictions) 
+        return float(correct_predictions) / len(predictions)

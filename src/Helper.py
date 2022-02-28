@@ -74,15 +74,3 @@ def plot_loss_list(training_losses: List[float], validation_losses: List[float])
   plt.plot(indexes, training_losses, color='green')
   plt.plot(indexes, validation_losses, color='blue')
   plt.show()
-
-
-relu_layer = nn.ReLU()
-''' Performs a residual connection step using a given Conv layer
-'''
-def perform_residual(conv_layer: nn.Conv2d, x: torch.Tensor) -> torch.Tensor:
-    inital_x = x
-    new_x = conv_layer(x)
-    new_x = relu_layer(new_x)
-    new_x = conv_layer(x)
-    new_x = new_x + inital_x
-    return new_x
