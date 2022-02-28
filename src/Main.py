@@ -45,7 +45,7 @@ if __name__ == '__main__':
     #Uncomment this line to run the segmentation network
     #run_model(NetworkType.SEGMENTATION, 7, 0.0001, 10, 'segmentation_model', False)
     #Uncomment this line to run the atttributes network
-    run_model(NetworkType.ATTRIBUTE, 20, 0.001, 20, 'attributes_model_mse_2_sigmoid', False)
+    #run_model(NetworkType.ATTRIBUTE, 20, 0.001, 20, 'attributes_model', False)
     #Uncomment this line to run the multi-learning network
-    #run_model(NetworkType.MULTI, 7, 0.0001, 20, 'multi_model', False)
+    run_model(NetworkType.MULTI, 7, 0.0001, 20, 'multi_model', False)
     

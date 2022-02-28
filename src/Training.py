@@ -10,12 +10,13 @@ from Networks.NetworkType import NetworkType
 
 class Training():
   _NUM_TRAINING_EXAMPLES = 20000
-  _OUTPUT_THRESHOLD = 0.5
+  _SEGMENTATION_OUTPUT_THRESHOLD = 0.8
+  _ATTRIBUTES_OUTPUT_THRESHOLD = 0.5
 
   ''' Splits the data into training and testing data and sets up data loader so data can be dealt with in
       batches
   '''
-  def __init__(self, model: nn.Module, dataset: CelebADataset,batch_size: int, learning_rate: float, 
+  def __init__(self, model: nn.Module, dataset: CelebADataset,batch_size: int, learning_rate: float,
                 save_name: str, num_epochs: int, display_outputs: bool, network_type: NetworkType, device: str):
     self._model = model
     self._dataset = dataset
@@ -32,8 +33,11 @@ class Training():
     #Using Per Pixel Mean Squared Error for our loss and Stochastic Gradient Descent for our optimiser
     if network_type == NetworkType.ATTRIBUTE:
       self._loss_func = nn.MSELoss()
-    else:
+    elif network_type == NetworkType.SEGMENTATION:
       self._loss_func = nn.BCEWithLogitsLoss()
+    else:
+      self._mse_loss = nn.MSELoss()
+      self._bce_loss = nn.BCEWithLogitsLoss()
     self._optim = torch.optim.Adam(self._model.parameters(), lr=learning_rate, betas=(0.5, 0.999))
     self._per_epoch_training_loss = []
     self._per_epoch_validation_loss = []
@@ -69,6 +73,7 @@ class Training():
   '''
   def train(self) -> None:
     #Run on validation data before doing any training so that we get an inital value for our loss
+    #UNCOMMENT BEFORE COMMITING
     self.run_on_validation_data()
     for epoch in range(self._num_epochs):
       print('Epoch:', epoch)
@@ -86,13 +91,13 @@ class Training():
         total_epoch_loss += (loss.item() * len(data_indexes))
         self._optim.zero_grad()
         loss.backward()
-        self._optim.step() 
+        self._optim.step()
 
         if i % 1000 == 0 and i != 0:
           print('Saving Model...')
           torch.save(self._model.state_dict(), self._save_name + '.pt')
           print('Model Saved.')
-        elif i == 0:
+        elif i == 0 and self._network_type == NetworkType.ATTRIBUTE:
           print('Pre processed predicted output:', model_output[0])
           model_output = self._threshold_outputs(model_output)
           accuracy = self._model.evaluate_prediction_accuracy(model_output[0], output_one[0])
@@ -154,8 +159,8 @@ class Training():
   def _compute_loss_and_display(self, model_output: torch.Tensor, output_one: torch.Tensor, output_two: torch.Tensor, batch_index: int) -> torch.Tensor:
     #If multi-learning network, need to get a segmentation and attribute loss and combine together
     if self._network_type == NetworkType.MULTI:
-      segmentation_loss = self._loss_func(model_output[0], output_one)
-      attribute_loss = self._loss_func(model_output[1], output_two)
+      segmentation_loss = self._bce_loss(model_output[0], output_one)
+      attribute_loss = self._mse_loss(model_output[1], output_two)
       if batch_index % 50 == 0:
         print('Batch:', batch_index, 'Segmentation Loss:', segmentation_loss.item(), 'Attribute Loss:', attribute_loss.item())
       return segmentation_loss + attribute_loss
@@ -181,12 +186,15 @@ class Training():
   ''' Converts the floating point outputs of our model into 0 or 1 based on a threshold value
   '''
   def _threshold_outputs(self, model_output: torch.Tensor) -> torch.Tensor:
-    if self._network_type != NetworkType.MULTI:
-      threshold_output = (model_output>self._OUTPUT_THRESHOLD).float()
+    if self._network_type == NetworkType.SEGMENTATION:
+      threshold_output = (model_output>self._SEGMENTATION_OUTPUT_THRESHOLD).float()
+      return threshold_output
+    elif self._network_type == NetworkType.ATTRIBUTE:
+      threshold_output = (model_output>self._ATTRIBUTES_OUTPUT_THRESHOLD).float()
       return threshold_output
     else:
-      model_output_0 = (model_output[0]>self._OUTPUT_THRESHOLD).float()
-      model_output_1 = (model_output[1]>self._OUTPUT_THRESHOLD).float()
+      model_output_0 = (model_output[0]>self._SEGMENTATION_OUTPUT_THRESHOLD).float()
+      model_output_1 = (model_output[1]>self._ATTRIBUTES_OUTPUT_THRESHOLD).float()
       return (model_output_0, model_output_1) 
 
   ''' Displays an example of the output from the attributes model - displays input image alongside this
