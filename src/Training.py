@@ -5,7 +5,7 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 from CelebADataset import CelebADataset
 from typing import Tuple
-from Helper import plot_predicted_and_actual, display_image, plot_loss_list
+from Helper import plot_predicted_and_actual, display_image, plot_loss_list, threshold_outputs
 from Networks.NetworkType import NetworkType
 
 class Training():
@@ -42,45 +42,17 @@ class Training():
     self._per_epoch_training_loss = []
     self._per_epoch_validation_loss = []
 
-  ''' Gets all the training tuples of data (input and output) for a given tensor containing indexes
-  '''
-  def _get_data_for_indexes(self, indexes: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
-    input_values = []
-    output_values = []
-
-    #Used for the multi network
-    segmentation_values = []
-    attribute_values = []
-
-    for index_tensor in indexes:
-      element = self._dataset[index_tensor.item()]
-      input_values.append(element[0])
-      if self._network_type != NetworkType.MULTI:
-        output_values.append(element[1])
-      else:
-        segmentation_values.append(element[1][0])
-        attribute_values.append(element[1][1])
- 
-    if self._network_type != NetworkType.MULTI:
-      return (torch.stack(input_values).to(self._device), torch.stack(output_values).to(self._device), 
-              torch.tensor(0).to(self._device))
-    else:
-      return (torch.stack(input_values).to(self._device), torch.stack(segmentation_values).to(self._device), 
-              torch.stack(attribute_values).to(self._device))
-
-
   ''' Performs the actual training using our training data and model
   '''
   def train(self) -> None:
     #Run on validation data before doing any training so that we get an inital value for our loss
-    #UNCOMMENT BEFORE COMMITING
     self.run_on_validation_data()
     for epoch in range(self._num_epochs):
       print('Epoch:', epoch)
       self._model.train()
       total_epoch_loss = 0
       for i, data_indexes in enumerate(self._training_loader):
-        input_data, output_one, output_two = self._get_data_for_indexes(data_indexes)
+        input_data, output_one, output_two = self.dataset.get_data_for_indexes(data_indexes)
         model_output = self._model(input_data)
 
         loss = self._compute_loss_and_display(model_output, output_one, output_two, i)
@@ -99,7 +71,7 @@ class Training():
           print('Model Saved.')
         elif i == 0 and self._network_type == NetworkType.ATTRIBUTE:
           print('Pre processed predicted output:', model_output[0])
-          model_output = self._threshold_outputs(model_output)
+          model_output = threshold_outputs(self._network_type, model_output, self._ATTRIBUTES_OUTPUT_THRESHOLD)
           accuracy = self._model.evaluate_prediction_accuracy(model_output[0], output_one[0])
           print('Example prediction accurracy:', accuracy)
           print('Model Output:', model_output[0])
@@ -141,7 +113,7 @@ class Training():
 
         if self._network_type == NetworkType.ATTRIBUTE and i == 0:
           print('Pre processed predicted output:', model_output[0])
-          model_output = self._threshold_outputs(model_output)
+          model_output = threshold_outputs(self._network_type, model_output, self._ATTRIBUTES_OUTPUT_THRESHOLD)
           accuracy = self._model.evaluate_prediction_accuracy(model_output[0], output_one[0])
           print('Example prediction accurracy:', accuracy)
           print('Model Output:', model_output[0])
@@ -172,30 +144,18 @@ class Training():
   ''' Displays example outputs from our models whilst training
   '''
   def _display_outputs(self, input_data: torch.Tensor, model_output: torch.Tensor, 
-                      output_one: torch.Tensor, output_two: torch.Tensor, batch_index: int) -> None:
+                      output_one: torch.Tensor, output_two: torch.Tensor, batch_index: int) -> None:                    
     if batch_index % 500 == 0:
-      model_output = self._threshold_outputs(model_output)
       if self._network_type == NetworkType.SEGMENTATION:
+        model_output = threshold_outputs(self._network_type, model_output, self._SEGMENTATION_OUTPUT_THRESHOLD)
         plot_predicted_and_actual(input_data[0].cpu(), model_output[0].cpu(), output_one[0].cpu())
       elif self._network_type == NetworkType.ATTRIBUTE:
+        model_output = threshold_outputs(self._network_type, model_output, self._ATTRIBUTES_OUTPUT_THRESHOLD)
         self._display_output_for_attributes_model(input_data[0].cpu(), output_one[0].cpu(), model_output[0].cpu())
       else:
+        model_output = threshold_outputs(self._network_type, model_output, self._SEGMENTATION_OUTPUT_THRESHOLD, self._ATTRIBUTES_OUTPUT_THRESHOLD)
         plot_predicted_and_actual(input_data[0].cpu(), model_output[0][0].cpu(), output_one[0].cpu())
         self._display_output_for_attributes_model(input_data[0].cpu(), output_two[0].cpu(), model_output[0][1].cpu())
-
-  ''' Converts the floating point outputs of our model into 0 or 1 based on a threshold value
-  '''
-  def _threshold_outputs(self, model_output: torch.Tensor) -> torch.Tensor:
-    if self._network_type == NetworkType.SEGMENTATION:
-      threshold_output = (model_output>self._SEGMENTATION_OUTPUT_THRESHOLD).float()
-      return threshold_output
-    elif self._network_type == NetworkType.ATTRIBUTE:
-      threshold_output = (model_output>self._ATTRIBUTES_OUTPUT_THRESHOLD).float()
-      return threshold_output
-    else:
-      model_output_0 = (model_output[0]>self._SEGMENTATION_OUTPUT_THRESHOLD).float()
-      model_output_1 = (model_output[1]>self._ATTRIBUTES_OUTPUT_THRESHOLD).float()
-      return (model_output_0, model_output_1) 
 
   ''' Displays an example of the output from the attributes model - displays input image alongside this
   '''

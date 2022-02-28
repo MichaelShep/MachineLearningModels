@@ -19,8 +19,9 @@ class CelebADataset:
   ''' Constructor for the ImageDataset class
       Takes the location of the dataset and uses this to get the location of images, masks and annotations
   '''
-  def __init__(self, base_dir: str, network_type: NetworkType):
+  def __init__(self, base_dir: str, network_type: NetworkType, device: str):
     self._network_type = network_type
+    self._device = device
     self._img_dir = os.path.join(base_dir, 'CelebA-HQ-img')
     self._feature_mask_dir = os.path.join(base_dir, 'CelebAMask-HQ-mask-anno')
     self._attribute_anno_file = os.path.join(base_dir, 'CelebAMask-HQ-attribute-anno.txt')
@@ -140,3 +141,29 @@ class CelebADataset:
       if attribute_list[i] == 1:
         output_string += self._attribute_names[i] + ', '
     return output_string
+
+  ''' Gets all the training tuples of data (input and output) for a given tensor containing indexes
+  '''
+  def get_data_for_indexes(self, indexes: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    input_values = []
+    output_values = []
+
+    #Used for the multi network
+    segmentation_values = []
+    attribute_values = []
+
+    for index_tensor in indexes:
+      element = self[int(index_tensor.item())]
+      input_values.append(element[0])
+      if self._network_type != NetworkType.MULTI:
+        output_values.append(element[1])
+      else:
+        segmentation_values.append(element[1][0])
+        attribute_values.append(element[1][1])
+ 
+    if self._network_type != NetworkType.MULTI:
+      return (torch.stack(input_values).to(self._device), torch.stack(output_values).to(self._device), 
+              torch.tensor(0).to(self._device))
+    else:
+      return (torch.stack(input_values).to(self._device), torch.stack(segmentation_values).to(self._device), 
+              torch.stack(attribute_values).to(self._device))

@@ -1,10 +1,13 @@
 ''' File contains a series of helper functions that perform useful operations '''
 
+from re import L
 from typing import List, Tuple
 import torch
 import matplotlib.pyplot as plt # type: ignore
 import torch.nn as nn
 from torch.utils.mobile_optimizer import optimize_for_mobile
+
+from Networks.NetworkType import NetworkType
 
 ''' Takes a 2D list and returns a 1D list with a specific index extracted from each sublist
 '''
@@ -69,8 +72,51 @@ def save_model_for_mobile(model: torch.nn.Module, model_name: str, example_input
 
 ''' Uses matplotlib to plot a curve for loss values - using the data indexes as the x axis
 '''
-def plot_loss_list(training_losses: List[float], validation_losses: List[float]):
+def plot_loss_list(training_losses: List[float], validation_losses: List[float]) -> None:
   indexes = list(range(0, len(training_losses)))
   plt.plot(indexes, training_losses, color='green')
   plt.plot(indexes, validation_losses, color='blue')
   plt.show()
+
+''' Converts the floating point outputs of our model into 0 or 1 based on a threshold value
+'''
+def threshold_outputs(network_type: NetworkType, model_output: torch.Tensor, 
+                      threshold_level: int, threshold_level_2: int = 0) -> torch.Tensor:
+  if network_type == NetworkType.SEGMENTATION:
+    threshold_output = (model_output>threshold_level).float()
+    return threshold_output
+  elif network_type == NetworkType.ATTRIBUTE:
+    threshold_output = (model_output>threshold_level).float()
+    return threshold_output
+  else:
+    model_output_0 = (model_output[0]>threshold_level).float()
+    model_output_1 = (model_output[1]>threshold_level_2).float()
+    return (model_output_0, model_output_1) 
+
+''' Evaluates the prediction accuracy of one of the models
+'''
+def evaluate_model_accuracy(model: nn.Module, network_type: NetworkType,
+                            input_data: torch.Tensor, output_data: torch.Tensor, threshold_level: int) -> None:
+  print('Starting Model Evalaution... This may take a while')
+  model_predictions = model(input_data)
+  model_predictions = threshold_outputs(network_type, model_predictions, threshold_level)
+
+  correct_predictions = 0
+  total_predictions = 0
+  for i in range(len(model_predictions)):
+    print(f'Evaluated {i} images')
+    if network_type == NetworkType.ATTRIBUTE:
+      for j in range(len(model_predictions[i])):
+        if model_predictions[i][j] == output_data[i][j]:
+          correct_predictions += 1
+        total_predictions += 1
+    if network_type == NetworkType.SEGMENTATION:
+      for j in range(len(model_predictions[i])):
+        for k in range(len(model_predictions[i][j])):
+          for x in range(len(model_predictions[i][j][k])):
+            if model_predictions[i][j][k][x] == output_data[i][j][k][x]:
+              correct_predictions += 1
+            total_predictions += 1
+  
+  overall_accuracy = correct_predictions / total_predictions
+  print('Accuracy of this model on data:', overall_accuracy)
