@@ -72,10 +72,23 @@ def save_model_for_mobile(model: torch.nn.Module, model_name: str, example_input
 
 ''' Uses matplotlib to plot a curve for loss values - using the data indexes as the x axis
 '''
-def plot_loss_list(training_losses: List[float], validation_losses: List[float]) -> None:
+def plot_loss_list(training_losses: List[float], validation_losses: List[float], network_type: NetworkType) -> None:
   indexes = list(range(0, len(training_losses)))
-  plt.plot(indexes, training_losses, color='green')
-  plt.plot(indexes, validation_losses, color='blue')
+  fig = plt.figure(figsize=(10, 7))
+  ax = fig.add_subplot(111) 
+  plt_title = ''
+  if network_type == NetworkType.ATTRIBUTE:
+    plt_title = 'Attributes Model'
+  elif network_type == NetworkType.SEGMENTATION:
+    plt_title = 'Segmentation Model'
+  else:
+    plt_title = 'Multi-Learning Model'
+  ax.set_title(plt_title)
+  ax.set_xlabel('Epoch')
+  ax.set_ylabel('Loss')
+  ax.plot(indexes, training_losses, label='Training Loss', color='green')
+  ax.plot(indexes, validation_losses, label='Validation Loss', color='blue')
+  ax.legend(loc='best', fancybox=True, framealpha=0.5)
   plt.show()
 
 ''' Converts the floating point outputs of our model into 0 or 1 based on a threshold value

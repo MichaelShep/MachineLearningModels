@@ -94,7 +94,7 @@ class Training():
       self.run_on_validation_data()
     
     #Show training loss curve once the model has been trained
-    plot_loss_list(self._per_epoch_training_loss, self._per_epoch_validation_loss)
+    plot_loss_list(self._per_epoch_training_loss, self._per_epoch_validation_loss, self._network_type)
     
   ''' Runs our model on unseen validation data to check we are not overfitting to training data
   '''
