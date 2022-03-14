@@ -4,6 +4,6 @@
 from enum import Enum
 
 class NetworkType(Enum):
-    SEGMENTATION = 0
-    ATTRIBUTE = 1
-    MULTI = 2
+    SEGMENTATION = 'Segmentation'
+    ATTRIBUTE = 'Attribute'
+    MULTI = 'Multi'

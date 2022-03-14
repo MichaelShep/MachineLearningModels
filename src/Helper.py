@@ -110,14 +110,12 @@ def threshold_outputs(network_type: NetworkType, model_output: torch.Tensor,
 '''
 def evaluate_model_accuracy(model: nn.Module, network_type: NetworkType,
                             input_data: torch.Tensor, output_data: torch.Tensor, threshold_level: int) -> None:
-  print('Starting Model Evalaution... This may take a while')
   model_predictions = model(input_data)
   model_predictions = threshold_outputs(network_type, model_predictions, threshold_level)
 
   correct_predictions = 0
   total_predictions = 0
   for i in range(len(model_predictions)):
-    print(f'Evaluated {i} images')
     if network_type == NetworkType.ATTRIBUTE:
       for j in range(len(model_predictions[i])):
         if model_predictions[i][j] == output_data[i][j]:
@@ -131,5 +129,4 @@ def evaluate_model_accuracy(model: nn.Module, network_type: NetworkType,
               correct_predictions += 1
             total_predictions += 1
   
-  overall_accuracy = correct_predictions / total_predictions
-  print('Accuracy of this model on data:', overall_accuracy)
+  return correct_predictions / total_predictions

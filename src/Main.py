@@ -13,6 +13,7 @@ import torch.nn as nn
 from Helper import save_model_for_mobile, evaluate_model_accuracy
 from Networks.NetworkType import NetworkType
 import random
+import pickle
 
 ''' Trains a specific type of model
 '''
@@ -29,23 +30,37 @@ def train_model(model: nn.Module, dataset: CelebADataset, batch_size: int, learn
 ''' Tests a model that we have already trained to get the accuracy of its predictions
 '''
 def test_model(model: nn.Module, dataset: CelebADataset, saved_name: str, 
-                                network_type: NetworkType, num_samples: int):
+                                network_type: NetworkType, num_samples: int, device: str):
     if not os.path.exists(saved_name + '.pt'):
         print(f'Model file {saved_name}.pt cannot be found')
         return
-    model.load_state_dict(torch.load(saved_name + '.pt'))
+    model.load_state_dict(torch.load(saved_name + '.pt', map_location=device))
     print('Loading required data...')
-    #Generate 100 random indexes that will be used for testing - using 20000-30000 to use validation data
-    index_values = random.sample(range(20000, 30000), num_samples)
-    data_indexes = torch.Tensor(index_values)
-    input_data, output_one, output_two = dataset.get_data_for_indexes(data_indexes)
-    print('Data loaded')
-    #Currently does not work for multi model, need to rework code to get this working
-    if network_type == NetworkType.ATTRIBUTE:
-        evaluate_model_accuracy(model, network_type, input_data, output_one, 0.5)
-    elif network_type == NetworkType.SEGMENTATION:
-        evaluate_model_accuracy(model, network_type, input_data, output_one, 0.8)
-    evaluate_model_accuracy(model, network_type, input_data, output_two)
+    #Generaterandom indexes that will be used for testing - using 20000-30000 to use validation data
+    #Will be using 50 batches so need 50 * the amount of images we want to use for each batch
+    index_values = random.sample(range(20000, 30000), num_samples * 50)
+    #Store all the accurracies from each batch so that can be used statistical test
+    batch_accuracies = []
+
+    for i in range(0, len(index_values), num_samples):
+        print(f'Running for batch {(i/num_samples) + 1}')
+        data_indexes = torch.Tensor(index_values[i:i+num_samples])
+        input_data, output_one, output_two = dataset.get_data_for_indexes(data_indexes)
+        #Currently does not work for multi model, need to rework code to get this working
+        if network_type == NetworkType.ATTRIBUTE:
+            accuracy = evaluate_model_accuracy(model, network_type, input_data, output_one, 0.5)
+        elif network_type == NetworkType.SEGMENTATION:
+            accuracy = evaluate_model_accuracy(model, network_type, input_data, output_one, 0.8)
+        else:
+            accuracy = evaluate_model_accuracy(model, network_type, input_data, output_two)
+        batch_accuracies.append(accuracy)
+        print('Accuracy for this batch: ', accuracy)
+
+    #Saved all the collected accuracies
+    save_data = dict(accuracies=batch_accuracies)
+    with open(f'accuracies_{network_type.value.lower()}.pt', 'wb') as save_file:
+        pickle.dump(save_data, save_file)
+    print('Accuracy Data saved')
 
 ''' Entry point for the program
 '''
@@ -55,7 +70,7 @@ if __name__ == '__main__':
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
     #Change this to change which sort of model is run
-    network_type = NetworkType.SEGMENTATION
+    network_type = NetworkType.ATTRIBUTE
     #Change this parameter to change between testing or training a model
     testing_model = True
 
@@ -64,20 +79,20 @@ if __name__ == '__main__':
     if network_type == NetworkType.SEGMENTATION:
         model = SegmentationNetwork(dataset.get_num_output_masks()).to(device)
         if not testing_model:
-            train_model(model, dataset, 7, 0.0001, 10, 'segmentation_model', False)
+            train_model(model, dataset, 5, 0.0001, 10, 'segmentation_model', False)
         else:
-            test_model(model, dataset, 'segmentation_model', network_type, 10)
+            test_model(model, dataset, 'segmentation_model', network_type, 10, device)
     elif network_type == NetworkType.ATTRIBUTE:
         model = AttributesNetwork(dataset.get_num_attributes(), device=device).to(device)
         if not testing_model:
             train_model(model, dataset, 20, 0.001, 20, 'attributes_model', False)
         else:
-            test_model(model, dataset, 'attributes_model', network_type, 10)
+            test_model(model, dataset, 'attributes_model', network_type, 10, device)
     else:
         model = MultiNetwork(dataset.get_num_output_masks(), dataset.get_num_attributes()).to(device)
         if not testing_model:
             train_model(model, dataset, 7, 0.0001, 20, 'multi_model', False)
         else:
-            test_model(model, dataset, 'multi_model', network_type, 10)
+            test_model(model, dataset, 'multi_model', network_type, 10, device)
         
     
