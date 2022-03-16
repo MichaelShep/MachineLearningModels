@@ -21,7 +21,6 @@ def test_model(model: nn.Module, dataset: CelebADataset, network_type: NetworkTy
         print(f'Running for batch {(i/num_samples) + 1}')
         data_indexes = torch.Tensor(index_values[i:i+num_samples])
         input_data, output_one, output_two = dataset.get_data_for_indexes(data_indexes)
-        #Currently does not work for multi model, need to rework code to get this working
         if network_type == NetworkType.ATTRIBUTE:
             accuracy = evaluate_model_accuracy(model, network_type, input_data, output_one, 0.5)
             print('Accuracy for this batch: ', accuracy)

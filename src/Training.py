@@ -52,7 +52,7 @@ class Training():
       self._model.train()
       total_epoch_loss = 0
       for i, data_indexes in enumerate(self._training_loader):
-        input_data, output_one, output_two = self.dataset.get_data_for_indexes(data_indexes)
+        input_data, output_one, output_two = self._dataset.get_data_for_indexes(data_indexes)
         model_output = self._model(input_data)
 
         loss = self._compute_loss_and_display(model_output, output_one, output_two, i)
@@ -105,7 +105,7 @@ class Training():
     for i, data_indexes in enumerate(self._validation_loader):
       self._model.eval()
       with torch.no_grad():
-        input_data, output_one, output_two = self._get_data_for_indexes(data_indexes)
+        input_data, output_one, output_two = self._dataset.get_data_for_indexes(data_indexes)
         model_output = self._model(input_data)
         #For multi-learning network, need to get loss of segmentation and attribute and combine together
         loss = self._compute_loss_and_display(model_output, output_one, output_two, i)
