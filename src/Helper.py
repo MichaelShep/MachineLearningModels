@@ -1,13 +1,8 @@
-''' File contains a series of helper functions that perform useful operations '''
-
-from re import L
-from tkinter import NE
 from typing import List, Tuple
 import torch
 import matplotlib.pyplot as plt # type: ignore
 import torch.nn as nn
 from torch.utils.mobile_optimizer import optimize_for_mobile
-import pickle
 
 from Networks.NetworkType import NetworkType
 
@@ -107,65 +102,3 @@ def threshold_outputs(network_type: NetworkType, model_output: torch.Tensor,
     model_output_0 = (model_output[0]>threshold_level).float()
     model_output_1 = (model_output[1]>threshold_level_2).float()
     return (model_output_0, model_output_1) 
-
-''' Evaluates the prediction accuracy of one of the models
-'''
-def evaluate_model_accuracy(model: nn.Module, network_type: NetworkType,
-                            input_data: torch.Tensor, output_data: torch.Tensor, threshold_level: int, for_multi_segmentation_output: bool = False) -> None:
-  model_predictions = model(input_data)
-  #For Multi model, get which part of the output we are currently dealing with and treat model as that form of network
-  if network_type == NetworkType.MULTI:
-      if for_multi_segmentation_output:
-          network_type = NetworkType.SEGMENTATION
-          model_predictions = model_predictions[0]
-      else:
-          network_type = NetworkType.ATTRIBUTE
-          model_predictions = model_predictions[1]
-  model_predictions = threshold_outputs(network_type, model_predictions, threshold_level)
-
-  correct_predictions = 0
-  total_predictions = 0
-  for i in range(len(model_predictions)):
-    if network_type == NetworkType.ATTRIBUTE:
-      for j in range(len(model_predictions[i])):
-        if model_predictions[i][j] == output_data[i][j]:
-          correct_predictions += 1
-        total_predictions += 1
-    if network_type == NetworkType.SEGMENTATION:
-      for j in range(len(model_predictions[i])):
-        for k in range(len(model_predictions[i][j])):
-          for x in range(len(model_predictions[i][j][k])):
-            if model_predictions[i][j][k][x] == output_data[i][j][k][x]:
-              correct_predictions += 1
-            total_predictions += 1
-  
-  return correct_predictions / total_predictions
-
-def compare_model_accuracies(segmentation_file_name: str, attributes_file_name: str, multi_file_name: str):
-    with open(f'{segmentation_file_name}.pt', 'rb') as segmentation_file:
-        segmentation_accuracies = pickle.load(segmentation_file)['accuracies']
-    with open(f'{attributes_file_name}.pt', 'rb') as attributes_file:
-        attributes_accuracies = pickle.load(attributes_file)['accuracies']
-    with open(f'{multi_file_name}.pt', 'rb') as multi_file:
-        multi_accuracies = pickle.load(multi_file)['accuracies']
-
-    #Create box plot for comparing standard segmentation model output to multi model
-    fig = plt.figure(figsize=(10, 7))
-    segmentation_display = fig.add_subplot(111)
-    segmentation_display.set_title('Segmentation Outputs Comparison')
-    segmentation_display.set_xticklabels(['Segmentation', 'Multi'])
-    segmentation_display.set_xlabel('Model Type')
-    segmentation_display.set_ylabel('Accuracy')
-
-    segmentation_display.boxplot([segmentation_accuracies, [item[0] for item in multi_accuracies]])
-    plt.show()
-
-    fig = plt.figure(figsize=(10, 7))
-    attributes_display = fig.add_subplot(111)
-    attributes_display.set_title('Attributes Outputs Comparison')
-    attributes_display.set_xticklabels(['Attribute', 'Multi'])
-    attributes_display.set_xlabel('Model Type')
-    attributes_display.set_ylabel('Accuracy')
-
-    attributes_display.boxplot([attributes_accuracies, [item[1] for item in multi_accuracies]])
-    plt.show()

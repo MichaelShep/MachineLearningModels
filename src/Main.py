@@ -10,11 +10,11 @@ from Networks.MultiNetwork import MultiNetwork
 from Training import Training
 import torch
 import torch.nn as nn
-from Helper import save_model_for_mobile, evaluate_model_accuracy, compare_model_accuracies
+from Helper import save_model_for_mobile
 from Networks.NetworkType import NetworkType
-import random
-import pickle
 from enum import Enum
+
+import Testing
 
 ''' Enum which is used to state which version of the code we are currently running '''
 class RunMode(Enum):
@@ -42,36 +42,7 @@ def test_model(model: nn.Module, dataset: CelebADataset, saved_name: str,
         print(f'Model file {saved_name}.pt cannot be found')
         return
     model.load_state_dict(torch.load(saved_name + '.pt', map_location=device))
-    print('Loading required data...')
-    #Generate random indexes that will be used for testing - using 20000-30000 to use validation data
-    #Will be using 50 batches so need 50 * the amount of images we want to use for each batch
-    index_values = random.sample(range(20000, 30000), num_samples * 50)
-    #Store all the accurracies from each batch so that can be used statistical test
-    batch_accuracies = []
-
-    for i in range(0, len(index_values), num_samples):
-        print(f'Running for batch {(i/num_samples) + 1}')
-        data_indexes = torch.Tensor(index_values[i:i+num_samples])
-        input_data, output_one, output_two = dataset.get_data_for_indexes(data_indexes)
-        #Currently does not work for multi model, need to rework code to get this working
-        if network_type == NetworkType.ATTRIBUTE:
-            accuracy = evaluate_model_accuracy(model, network_type, input_data, output_one, 0.5)
-            print('Accuracy for this batch: ', accuracy)
-        elif network_type == NetworkType.SEGMENTATION:
-            accuracy = evaluate_model_accuracy(model, network_type, input_data, output_one, 0.8)
-            print('Accuracy for this batch: ', accuracy)
-        else:
-            segmentation_accuracy = evaluate_model_accuracy(model, network_type, input_data, output_one, 0.8, True)
-            attributes_accuracy = evaluate_model_accuracy(model, network_type, input_data, output_two, 0.5, False)
-            accuracy = (segmentation_accuracy, attributes_accuracy)
-            print(f'Segmentation Accuracy: {segmentation_accuracy}, Attributes Accuracy: {attributes_accuracy}, Overall Accuracy: {(segmentation_accuracy + attributes_accuracy) / 2}')
-        batch_accuracies.append(accuracy)
-
-    #Saved all the collected accuracies
-    save_data = dict(accuracies=batch_accuracies)
-    with open(f'accuracies_{network_type.value.lower()}.pt', 'wb') as save_file:
-        pickle.dump(save_data, save_file)
-    print('Accuracy Data saved')
+    Testing.test_model(model, dataset, network_type, num_samples)
 
 ''' Entry point for the program
 '''
@@ -106,6 +77,6 @@ if __name__ == '__main__':
             elif run_mode == RunMode.Testing:
                 test_model(model, dataset, 'multi_model', network_type, 10, device)
     else:
-        compare_model_accuracies('accuracies_segmentation', 'accuracies_attribute', 'accuracies_multi')
+        Testing.compare_model_accuracies('accuracies_segmentation', 'accuracies_attribute', 'accuracies_multi')
         
     
