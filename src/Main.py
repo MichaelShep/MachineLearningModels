@@ -1,5 +1,6 @@
 ''' Main script, brings everything together - creates, trains and tests model '''
 
+from functools import total_ordering
 import sys
 import os.path
 
@@ -36,7 +37,7 @@ def test_model(model: nn.Module, dataset: CelebADataset, saved_name: str,
         return
     model.load_state_dict(torch.load(saved_name + '.pt', map_location=device))
     print('Loading required data...')
-    #Generaterandom indexes that will be used for testing - using 20000-30000 to use validation data
+    #Generate random indexes that will be used for testing - using 20000-30000 to use validation data
     #Will be using 50 batches so need 50 * the amount of images we want to use for each batch
     index_values = random.sample(range(20000, 30000), num_samples * 50)
     #Store all the accurracies from each batch so that can be used statistical test
@@ -49,12 +50,16 @@ def test_model(model: nn.Module, dataset: CelebADataset, saved_name: str,
         #Currently does not work for multi model, need to rework code to get this working
         if network_type == NetworkType.ATTRIBUTE:
             accuracy = evaluate_model_accuracy(model, network_type, input_data, output_one, 0.5)
+            print('Accuracy for this batch: ', accuracy)
         elif network_type == NetworkType.SEGMENTATION:
             accuracy = evaluate_model_accuracy(model, network_type, input_data, output_one, 0.8)
+            print('Accuracy for this batch: ', accuracy)
         else:
-            accuracy = evaluate_model_accuracy(model, network_type, input_data, output_two)
+            segmentation_accuracy = evaluate_model_accuracy(model, network_type, input_data, output_one, 0.8, True)
+            attributes_accuracy = evaluate_model_accuracy(model, network_type, input_data, output_two, 0.5, False)
+            accuracy = (segmentation_accuracy, attributes_accuracy)
+            print(f'Segmentation Accuracy: {segmentation_accuracy}, Attributes Accuracy: {attributes_accuracy}, Overall Accuracy: {(segmentation_accuracy + attributes_accuracy) / 2}')
         batch_accuracies.append(accuracy)
-        print('Accuracy for this batch: ', accuracy)
 
     #Saved all the collected accuracies
     save_data = dict(accuracies=batch_accuracies)
@@ -70,7 +75,7 @@ if __name__ == '__main__':
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
     #Change this to change which sort of model is run
-    network_type = NetworkType.ATTRIBUTE
+    network_type = NetworkType.MULTI
     #Change this parameter to change between testing or training a model
     testing_model = True
 

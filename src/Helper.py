@@ -1,6 +1,7 @@
 ''' File contains a series of helper functions that perform useful operations '''
 
 from re import L
+from tkinter import NE
 from typing import List, Tuple
 import torch
 import matplotlib.pyplot as plt # type: ignore
@@ -109,8 +110,16 @@ def threshold_outputs(network_type: NetworkType, model_output: torch.Tensor,
 ''' Evaluates the prediction accuracy of one of the models
 '''
 def evaluate_model_accuracy(model: nn.Module, network_type: NetworkType,
-                            input_data: torch.Tensor, output_data: torch.Tensor, threshold_level: int) -> None:
+                            input_data: torch.Tensor, output_data: torch.Tensor, threshold_level: int, for_multi_segmentation_output: bool = False) -> None:
   model_predictions = model(input_data)
+  #For Multi model, get which part of the output we are currently dealing with and treat model as that form of network
+  if network_type == NetworkType.MULTI:
+      if for_multi_segmentation_output:
+          network_type = NetworkType.SEGMENTATION
+          model_predictions = model_predictions[0]
+      else:
+          network_type = NetworkType.ATTRIBUTE
+          model_predictions = model_predictions[1]
   model_predictions = threshold_outputs(network_type, model_predictions, threshold_level)
 
   correct_predictions = 0
