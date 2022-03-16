@@ -1,6 +1,5 @@
 ''' Main script, brings everything together - creates, trains and tests model '''
 
-from functools import total_ordering
 import sys
 import os.path
 
@@ -11,10 +10,17 @@ from Networks.MultiNetwork import MultiNetwork
 from Training import Training
 import torch
 import torch.nn as nn
-from Helper import save_model_for_mobile, evaluate_model_accuracy
+from Helper import save_model_for_mobile, evaluate_model_accuracy, compare_model_accuracies
 from Networks.NetworkType import NetworkType
 import random
 import pickle
+from enum import Enum
+
+''' Enum which is used to state which version of the code we are currently running '''
+class RunMode(Enum):
+    Training = 'Training'
+    Testing = 'Testing'
+    Comparing = 'Comparing'
 
 ''' Trains a specific type of model
 '''
@@ -74,30 +80,32 @@ if __name__ == '__main__':
     dataset_directory = os.path.join(os.path.split(base_directory)[0], 'CelebAMask-HQ')
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-    #Change this to change which sort of model is run
-    network_type = NetworkType.MULTI
-    #Change this parameter to change between testing or training a model
-    testing_model = True
+    #Change this to change which sort of model is run and what we are doing with the model
+    network_type = NetworkType.ATTRIBUTE
+    run_mode = RunMode.Comparing
 
     dataset = CelebADataset(dataset_directory, network_type, device)
     #Run the code for a training a model
-    if network_type == NetworkType.SEGMENTATION:
-        model = SegmentationNetwork(dataset.get_num_output_masks()).to(device)
-        if not testing_model:
-            train_model(model, dataset, 5, 0.0001, 10, 'segmentation_model', False)
+    if run_mode != RunMode.Comparing:
+        if network_type == NetworkType.SEGMENTATION:
+            model = SegmentationNetwork(dataset.get_num_output_masks()).to(device)
+            if run_mode == RunMode.Training:
+                train_model(model, dataset, 5, 0.0001, 10, 'segmentation_model', False)
+            elif run_mode == RunMode.Testing:
+                test_model(model, dataset, 'segmentation_model', network_type, 10, device)
+        elif network_type == NetworkType.ATTRIBUTE:
+            model = AttributesNetwork(dataset.get_num_attributes(), device=device).to(device)
+            if run_mode == RunMode.Training:
+                train_model(model, dataset, 20, 0.001, 20, 'attributes_model', False)
+            elif run_mode == RunMode.Testing:
+                test_model(model, dataset, 'attributes_model', network_type, 10, device)
         else:
-            test_model(model, dataset, 'segmentation_model', network_type, 10, device)
-    elif network_type == NetworkType.ATTRIBUTE:
-        model = AttributesNetwork(dataset.get_num_attributes(), device=device).to(device)
-        if not testing_model:
-            train_model(model, dataset, 20, 0.001, 20, 'attributes_model', False)
-        else:
-            test_model(model, dataset, 'attributes_model', network_type, 10, device)
+            model = MultiNetwork(dataset.get_num_output_masks(), dataset.get_num_attributes()).to(device)
+            if run_mode == RunMode.Training:
+                train_model(model, dataset, 7, 0.0001, 20, 'multi_model', False)
+            elif run_mode == RunMode.Testing:
+                test_model(model, dataset, 'multi_model', network_type, 10, device)
     else:
-        model = MultiNetwork(dataset.get_num_output_masks(), dataset.get_num_attributes()).to(device)
-        if not testing_model:
-            train_model(model, dataset, 7, 0.0001, 20, 'multi_model', False)
-        else:
-            test_model(model, dataset, 'multi_model', network_type, 10, device)
+        compare_model_accuracies('accuracies_segmentation', 'accuracies_attribute', 'accuracies_multi')
         
     

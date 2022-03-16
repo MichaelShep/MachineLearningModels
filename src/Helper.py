@@ -7,6 +7,7 @@ import torch
 import matplotlib.pyplot as plt # type: ignore
 import torch.nn as nn
 from torch.utils.mobile_optimizer import optimize_for_mobile
+import pickle
 
 from Networks.NetworkType import NetworkType
 
@@ -139,3 +140,32 @@ def evaluate_model_accuracy(model: nn.Module, network_type: NetworkType,
             total_predictions += 1
   
   return correct_predictions / total_predictions
+
+def compare_model_accuracies(segmentation_file_name: str, attributes_file_name: str, multi_file_name: str):
+    with open(f'{segmentation_file_name}.pt', 'rb') as segmentation_file:
+        segmentation_accuracies = pickle.load(segmentation_file)['accuracies']
+    with open(f'{attributes_file_name}.pt', 'rb') as attributes_file:
+        attributes_accuracies = pickle.load(attributes_file)['accuracies']
+    with open(f'{multi_file_name}.pt', 'rb') as multi_file:
+        multi_accuracies = pickle.load(multi_file)['accuracies']
+
+    #Create box plot for comparing standard segmentation model output to multi model
+    fig = plt.figure(figsize=(10, 7))
+    segmentation_display = fig.add_subplot(111)
+    segmentation_display.set_title('Segmentation Outputs Comparison')
+    segmentation_display.set_xticklabels(['Segmentation', 'Multi'])
+    segmentation_display.set_xlabel('Model Type')
+    segmentation_display.set_ylabel('Accuracy')
+
+    segmentation_display.boxplot([segmentation_accuracies, [item[0] for item in multi_accuracies]])
+    plt.show()
+
+    fig = plt.figure(figsize=(10, 7))
+    attributes_display = fig.add_subplot(111)
+    attributes_display.set_title('Attributes Outputs Comparison')
+    attributes_display.set_xticklabels(['Attribute', 'Multi'])
+    attributes_display.set_xlabel('Model Type')
+    attributes_display.set_ylabel('Accuracy')
+
+    attributes_display.boxplot([attributes_accuracies, [item[1] for item in multi_accuracies]])
+    plt.show()
