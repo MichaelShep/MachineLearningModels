@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
+from datetime import datetime
 
 from CelebADataset import CelebADataset
 from Helper import plot_predicted_and_actual, display_image, plot_loss_list, threshold_outputs
@@ -63,6 +64,10 @@ class Training():
 
     def train(self) -> None:
         ''' Performs the actual training process of our model '''
+        #Before we start training, we make a note of the start time of the model so that we can work out how long the model takes to train
+        start_time = datetime.now()
+        print(f'Model Starting Time: {start_time}')
+
         self.run_on_validation_data()
         for epoch in range(self._num_epochs):
             print('Epoch:', epoch)
@@ -107,6 +112,14 @@ class Training():
         print('Average Loss for epoch:', total_epoch_loss)
         torch.save(self._model.state_dict(), self._save_name + '.pt')
         print('Model Saved.')
+
+        #Get the time where the model finished and hence calculate the total time taken for training
+        end_time = datetime.now()
+        print(f'Model Ending Time: {end_time}')
+        time_taken = end_time - start_time
+        print(f'Time taken for this model: {time_taken}, in seconds: {time_taken.total_seconds()}')
+
+        #Run for a final time on validation data so that the plots can be made accurately
         self.run_on_validation_data()
         
         #Show training loss curve once the model has been trained
