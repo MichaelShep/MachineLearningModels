@@ -54,13 +54,13 @@ class CelebADataset:
                 image_attributes.pop(0)
                 image_attributes.pop(0)
 
-            #Convert all values to ints and replace -1's with 0 as easier to work with in network
-            for i in range(len(image_attributes)):
-                image_attributes[i] = int(image_attributes[i])
-                if image_attributes[i] == -1:
-                    image_attributes[i] = 0
+                #Convert all values to ints and replace -1's with 0 as easier to work with in network
+                for i in range(len(image_attributes)):
+                    image_attributes[i] = int(image_attributes[i])
+                    if image_attributes[i] == -1:
+                        image_attributes[i] = 0
 
-            self._attributes.append(image_attributes)
+                self._attributes.append(image_attributes)
       
     def _get_base_output_file_path(self, index: int) -> str:
         ''' Used for the segmentation masks - used to get the location of the masks - are in different numbered folders
@@ -205,13 +205,13 @@ class CelebADataset:
 
         for index_tensor in indexes:
             element = self[int(index_tensor.item())]
-        input_values.append(element[0])
-        if self._network_type != NetworkType.MULTI:
-            output_values.append(element[1])
-        else:
-            segmentation_values.append(element[1][0])
-            attribute_values.append(element[1][1])
-    
+            input_values.append(element[0])
+            if self._network_type != NetworkType.MULTI:
+                output_values.append(element[1])
+            else:
+                segmentation_values.append(element[1][0])
+                attribute_values.append(element[1][1])
+        
         if self._network_type != NetworkType.MULTI:
             return (torch.stack(input_values).to(self._device), torch.stack(output_values).to(self._device), 
                 torch.tensor(0).to(self._device))
