@@ -1,8 +1,11 @@
+from audioop import mul
 import torch.nn as nn
 import torch
 import pickle
 import random
 import matplotlib.pyplot as plt
+from typing import List
+from scipy.stats import mannwhitneyu
 
 from CelebADataset import CelebADataset
 from Networks.NetworkType import NetworkType
@@ -101,3 +104,12 @@ def compare_model_accuracies(segmentation_file_name: str, attributes_file_name: 
 
     attributes_display.boxplot([attributes_accuracies, [item[1] for item in multi_accuracies]])
     plt.show()
+
+    perform_statistical_tests(segmentation_accuracies, attributes_accuracies, multi_accuracies)
+
+def perform_statistical_tests(segmentation_accuracies: List[int], attributes_accuracies: List[int], multi_accuracies: List[int]):
+    segmentation_u, segmentation_p = mannwhitneyu([item[0] for item in multi_accuracies], segmentation_accuracies)
+    print(f'Segmentation U-Value: {segmentation_u} , P-Value: {segmentation_p:.10f}')
+
+    attributes_u, attributes_p = mannwhitneyu([item[1] for item in multi_accuracies], attributes_accuracies)
+    print(f'Attributes U-Value: {attributes_u} P-Value: {attributes_p:.10f}')
