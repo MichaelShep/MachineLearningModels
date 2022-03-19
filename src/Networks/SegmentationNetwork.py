@@ -19,15 +19,15 @@ class SegmentationNetwork(nn.Module):
     self._upsample = nn.Upsample(scale_factor=2)
 
     self._contracting_path = nn.ModuleList([
-      create_double_conv(in_chan=3, out_chan=32, device=device), create_double_conv(in_chan=32, out_chan=64, device=device),
+      create_double_conv(in_chan=3, out_chan=8, device=device), create_double_conv(in_chan=8, out_chan=16, device=device),
+      create_double_conv(in_chan=16, out_chan=32, device=device), create_double_conv(in_chan=32, out_chan=64, device=device),
       create_double_conv(in_chan=64, out_chan=128, device=device), create_double_conv(in_chan=128, out_chan=256, device=device),
-      create_double_conv(in_chan=256, out_chan=512, device=device), create_double_conv(in_chan=512, out_chan=1024, device=device),
     ])
 
     self._expanding_path = nn.ModuleList([
-      create_double_conv(in_chan=1024, out_chan=512, device=device), create_double_conv(in_chan=512, out_chan=256, device=device),
       create_double_conv(in_chan=256, out_chan=128, device=device), create_double_conv(in_chan=128, out_chan=64, device=device),
-      create_double_conv(in_chan=64, out_chan=32, device=device), create_conv_layer(32, self._num_output_masks, device, kernal_size=1, padding=0)
+      create_double_conv(in_chan=64, out_chan=32, device=device), create_double_conv(in_chan=32, out_chan=16, device=device),
+      create_double_conv(in_chan=16, out_chan=8, device=device), create_conv_layer(8, self._num_output_masks, device, kernal_size=1, padding=0)
     ])
 
   ''' Runs the contracting part of the network

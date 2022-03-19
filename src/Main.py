@@ -84,7 +84,7 @@ def start_program():
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
     #Change this to change which sort of model is run and what we are doing with the model
-    network_type = NetworkType.ATTRIBUTE
+    network_type = NetworkType.SEGMENTATION
     run_mode = RunMode.Training
 
     dataset = CelebADataset(dataset_directory, network_type, device)
