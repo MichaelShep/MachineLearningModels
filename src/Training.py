@@ -106,12 +106,12 @@ class Training():
                 del input_data, output_one, output_two, model_output, loss
                 torch.cuda.empty_cache()
 
-        print('Saving Model...')  
-        total_epoch_loss /= len(self._training_examples)
-        self._per_epoch_training_loss.append(total_epoch_loss)
-        print('Average Loss for epoch:', total_epoch_loss)
-        torch.save(self._model.state_dict(), self._save_name + '.pt')
-        print('Model Saved.')
+            print('Saving Model...')  
+            total_epoch_loss /= len(self._training_examples)
+            self._per_epoch_training_loss.append(total_epoch_loss)
+            print('Average Loss for epoch:', total_epoch_loss)
+            torch.save(self._model.state_dict(), self._save_name + '.pt')
+            print('Model Saved.')
 
         #Get the time where the model finished and hence calculate the total time taken for training
         end_time = datetime.now()
