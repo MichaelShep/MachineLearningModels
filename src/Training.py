@@ -113,14 +113,13 @@ class Training():
             torch.save(self._model.state_dict(), self._save_name + '.pt')
             print('Model Saved.')
 
+            self.run_on_validation_data()
+
         #Get the time where the model finished and hence calculate the total time taken for training
         end_time = datetime.now()
         print(f'Model Ending Time: {end_time}')
         time_taken = end_time - start_time
         print(f'Time taken for this model: {time_taken}, in seconds: {time_taken.total_seconds()}')
-
-        #Run for a final time on validation data so that the plots can be made accurately
-        self.run_on_validation_data()
         
         #Show training loss curve once the model has been trained
         plot_loss_list(self._per_epoch_training_loss, self._per_epoch_validation_loss, self._network_type)
