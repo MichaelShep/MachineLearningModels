@@ -1,16 +1,20 @@
-''' Creates the Network which detects face attributes 
-    This model is based off the ImageNet classification model
-'''
-
 import torch.nn as nn
 import torch
 from Helper import create_conv_layer
 
 class AttributesNetwork(nn.Module):
-    ''' Constructor for the class
-        All layers of the network and their parameters get defined here
-    '''
+    ''' Creates a network for the attribute detection task - will predict a list of attribute for a given face '''
+
     def __init__(self, num_attributes: int, device: str):
+        ''' Initialises all the layers of the network
+        
+        Parameters
+        ----------
+        num_attributes: int
+            The number of attributes that it is possible for each face to have
+        device: str
+            The device which our model will run on - will be CUDA or cpu
+        '''
         super(AttributesNetwork, self).__init__()
         self._num_attributes = num_attributes
         self._device = device
@@ -36,18 +40,37 @@ class AttributesNetwork(nn.Module):
             nn.Linear(in_features=64, out_features=self._num_attributes)
         ])
 
-    ''' Performs an inner linear layer for the network - followed by dropout and relu
-    '''
     def _perform_linear_layer(self, x: torch.Tensor, idx: int) -> torch.Tensor:
+        ''' Performs a single linear layer with dropout enabled followed by a ReLU activation function
+        
+        Parameters
+        ----------
+        x: torch.Tensor
+            The input for this layer of the network
+        idx: int
+            The index of the linear layer we are wanting to perform
+        Returns
+        -------
+        torch.Tensor
+            The output from this linear layer and its activation
+        '''
         x = self._lin_layers[idx](x)
         x = self._dropout(x)
         x = self._relu(x)
         return x    
 
-    ''' Performs a forward pass through all the layers of the network
-        Input is a image of size 512x512 with 3 input channels
-    '''
-    def forward(self, x) -> torch.Tensor:
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        ''' Performs a forward pass of the network - passes an input through all the layers in our network
+
+        Parameters
+        ----------
+        x: torch.Tensor
+            The input image that will be passed through the network
+        Returns
+        -------
+        torch.Tensor
+            The output from the network - will be a list of attributes that the model thinks this face has
+        '''
         for i in range(0, len(self._res_layers)):
             x = self._res_layers[i](x) 
             x = self._max_pool(x)
@@ -63,9 +86,19 @@ class AttributesNetwork(nn.Module):
         x = self._sigmoid(x)
         return x
 
-    ''' Calculates how accurate our predictions were for a specific image
-    '''
     def evaluate_prediction_accuracy(self, predictions: torch.Tensor, actual: torch.Tensor) -> float:
+        ''' Used to see how accurate the predictions of our model were for a single image
+        Parameters
+        ----------
+        predictions: torch.Tensor
+            A list containing all the predictions our model made (list of 0s and 1s)
+        actual: torch.Tensor
+            A list containing all the actual outputs that our model was aiming for
+        Returns
+        -------
+        float
+            Value defining how accurate our model was - simply number of correct predictions out of the total
+        '''
         correct_predictions = 0
         for i in range(len(predictions)):
             if predictions[i] == actual[i]:
