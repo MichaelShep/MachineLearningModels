@@ -88,6 +88,7 @@ class AttributesNetwork(nn.Module):
 
     def evaluate_prediction_accuracy(self, predictions: torch.Tensor, actual: torch.Tensor) -> float:
         ''' Used to see how accurate the predictions of our model were for a single image
+        
         Parameters
         ----------
         predictions: torch.Tensor
