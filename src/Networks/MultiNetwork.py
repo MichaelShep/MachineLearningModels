@@ -1,15 +1,20 @@
-''' Creates the network for the multi-task learning - both face segmentation and attribute detection
-'''
-
 import torch.nn as nn
 import torch
 from Helper import create_conv_layer, create_double_conv
 
 class MultiNetwork(nn.Module):
-    ''' Constructor for the class
-        All layers of the network and their parameters get defined here
-    '''
+    ''' Creates a network for the multi-learning task - takes features of both individual networks and combines them together '''
+
     def __init__(self, num_output_masks: int, num_attributes: int):
+        ''' Initializes all aspects of the network 
+        
+        Parameters
+        ----------
+        num_output_masks: int
+            The number of face segmentation masks for each face
+        num_attributes: int
+            The number of possible attributes that each face can have '''
+
         super(MultiNetwork, self).__init__()
         self._num_output_masks = num_output_masks
         self._num_attributes = num_attributes
@@ -49,10 +54,17 @@ class MultiNetwork(nn.Module):
         self._relu = nn.ReLU()
         self._sigmoid = nn.Sigmoid()
 
-    ''' Performs a forward pass through all the layers of the network
-        Input is a image of size 512x512 with 3 input channels
-    '''
     def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+        ''' Performs a forward pass through the network - passing an input image through all the layers and getting an output
+
+        Parameters
+        ----------
+        x: torch.Tensor
+            A tensor containing the input image that will be passed through the network
+        Returns
+        -------
+        tuple[torch.Tensor, torch.Tensor]
+            A tensor where the first element is the segmentation part of the output, second element is the attributes output '''
         x = self._perform_joint_path(x)
 
         segmentation_output = self._perform_segmentation_path(x)
@@ -60,9 +72,17 @@ class MultiNetwork(nn.Module):
 
         return (segmentation_output, attributes_output)
 
-    ''' Creates the joint section of the network - the skip connections will only get used for the Segmentation part
-    '''
     def _perform_joint_path(self, x: torch.Tensor) -> torch.Tensor:
+        ''' Combines the layers needed for the part our network which handles both segmentation and attribute detection
+        
+        Parameters
+        ----------
+        x: torch.Tensor
+            The input data for this section of the network (since this is the first section, this will just be the input image)
+        Returns
+        -------
+        torch.Tensor
+            The output from this section of the network '''
         x = self._conv1(x)
         self._skip1 = x
         x2 = self._max_pool(x)
@@ -86,9 +106,17 @@ class MultiNetwork(nn.Module):
         x6 = self._conv6(x6)
         return x6
 
-    ''' Performs the segmentation specific part of the network
-    '''
     def _perform_segmentation_path(self, x: torch.Tensor) -> torch.Tensor:
+        ''' Combines the layers which are used specifically for the segmentation task
+
+        Parameters
+        ----------
+        x: torch.Tensor
+            The input data for this section of the network - will be the output data from the joint path
+        Returns
+        -------
+        torch.Tensor
+            The output from this section of the network - will be the final segmentation output '''
         x = self._upsample(x)
         x = self._conv7(x)
         x = x + self._skip5
@@ -112,9 +140,17 @@ class MultiNetwork(nn.Module):
         x = self._conv12(x)
         return x
     
-    ''' Performs the attribute specific part of the network
-    '''
     def _perform_attributes_path(self, x: torch.Tensor) -> torch.Tensor:
+        ''' Combines the layers which are used specifically for the attribute detection task
+
+        Parameters
+        ----------
+        x: torch.Tensor
+            The input data for this section of the network - will be the output data from the joint path
+        Returns
+        -------
+        torch.Tensor
+            The output from this section of the network - will be the final attributes output '''
         x = self._max_pool(x)
 
         x = x.view(x.size(0), -1) #Flatten input so it can be passed to linear layers
