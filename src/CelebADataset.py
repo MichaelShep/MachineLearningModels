@@ -100,8 +100,6 @@ class CelebADataset:
         image_files = glob.glob(os.path.join(self._img_dir, '*.jpg'), recursive=True)
         self._num_images = len(image_files)
 
-    ''' Used to allow indexing of the dataset - returns the input image and all its output masks
-    '''
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor]:
         ''' Used to allowing indexing of this class - will return the image at that index as well as its outputs
         

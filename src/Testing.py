@@ -11,9 +11,20 @@ from CelebADataset import CelebADataset
 from Networks.NetworkType import NetworkType
 from Helper import threshold_outputs
 
-''' Tests a model that we have already trained to get the accuracy of its predictions
-'''
 def test_model(model: nn.Module, dataset: CelebADataset, network_type: NetworkType, num_samples: int):
+    ''' Tests a model that has been trained by getting the accuracy of its predictions
+
+    Parameters
+    ----------
+    model: nn.Module
+        The model that we are going to test
+    dataset: CelebADataset
+        The dataset we are going to use for testing
+    network_type: NetworkType
+        The type of the network that has been trained
+    num_samples: int
+        The number of testing samples we want to collect
+    '''
     #Generate random indexes that will be used for testing - using 20000-30000 to use validation data
     #Will be using 50 batches so need 50 * the amount of images we want to use for each batch
     index_values = random.sample(range(20000, 30000), num_samples * 50)
@@ -43,40 +54,66 @@ def test_model(model: nn.Module, dataset: CelebADataset, network_type: NetworkTy
         pickle.dump(save_data, save_file)
     print('Accuracy Data saved')
 
-''' Evaluates the prediction accuracy of one of the models
-'''
 def evaluate_model_accuracy(model: nn.Module, network_type: NetworkType,
-                            input_data: torch.Tensor, output_data: torch.Tensor, threshold_level: int, for_multi_segmentation_output: bool = False) -> None:
-  model_predictions = model(input_data)
-  #For Multi model, get which part of the output we are currently dealing with and treat model as that form of network
-  if network_type == NetworkType.MULTI:
-      if for_multi_segmentation_output:
-          network_type = NetworkType.SEGMENTATION
-          model_predictions = model_predictions[0]
-      else:
-          network_type = NetworkType.ATTRIBUTE
-          model_predictions = model_predictions[1]
-  model_predictions = threshold_outputs(network_type, model_predictions, threshold_level)
+                            input_data: torch.Tensor, output_data: torch.Tensor, threshold_level: int, for_multi_segmentation_output: bool = False):
+    ''' Evaluates the prediction accuracy of a model
 
-  correct_predictions = 0
-  total_predictions = 0
-  for i in range(len(model_predictions)):
-    if network_type == NetworkType.ATTRIBUTE:
-      for j in range(len(model_predictions[i])):
-        if model_predictions[i][j] == output_data[i][j]:
-          correct_predictions += 1
-        total_predictions += 1
-    if network_type == NetworkType.SEGMENTATION:
-      for j in range(len(model_predictions[i])):
-        for k in range(len(model_predictions[i][j])):
-          for x in range(len(model_predictions[i][j][k])):
-            if model_predictions[i][j][k][x] == output_data[i][j][k][x]:
-              correct_predictions += 1
-            total_predictions += 1
+    Parameters
+    ----------
+    model: nn.Module
+        The model we are testing
+    network_type: NetworkType
+        The type of the model that we are testing
+    input_data: torch.Tensor
+        The input data which we are going to use to evaulate the accuracy with
+    output_data: torch.Tensor
+        The actual output data that should be produced for the given input data
+    threshold_level: int
+        The threshold level we will use to convert our raw floating point model outputs into binary
+    for_multi_segmentation_output: bool
+        Only used for multi model and is a flag for whether we are currently getting segmentation or attribute output
+    '''
+    model_predictions = model(input_data)
+    #For Multi model, get which part of the output we are currently dealing with and treat model as that form of network
+    if network_type == NetworkType.MULTI:
+        if for_multi_segmentation_output:
+            network_type = NetworkType.SEGMENTATION
+            model_predictions = model_predictions[0]
+        else:
+            network_type = NetworkType.ATTRIBUTE
+            model_predictions = model_predictions[1]
+    model_predictions = threshold_outputs(network_type, model_predictions, threshold_level)
+
+    correct_predictions = 0
+    total_predictions = 0
+    for i in range(len(model_predictions)):
+        if network_type == NetworkType.ATTRIBUTE:
+            for j in range(len(model_predictions[i])):
+                if model_predictions[i][j] == output_data[i][j]:
+                    correct_predictions += 1
+                total_predictions += 1
+        if network_type == NetworkType.SEGMENTATION:
+            for j in range(len(model_predictions[i])):
+                for k in range(len(model_predictions[i][j])):
+                    for x in range(len(model_predictions[i][j][k])):
+                        if model_predictions[i][j][k][x] == output_data[i][j][k][x]:
+                            correct_predictions += 1
+                        total_predictions += 1
   
-  return correct_predictions / total_predictions
+    return correct_predictions / total_predictions
 
 def compare_model_accuracies(segmentation_file_name: str, attributes_file_name: str, multi_file_name: str):
+    ''' Compares accuracies of all 3 types of model by loading the saved accuracy data from file
+    
+    Parameters
+    ----------
+    segmentation_file_name: str
+        The file where all the segmentation accuracies are stored
+    attributes_file_name: str
+        The file where all the attributes accuracies are stored
+    multi_file_name: str
+        The file where all the multi-model accuracies are stored
+    '''
     with open(f'{segmentation_file_name}.pt', 'rb') as segmentation_file:
         segmentation_accuracies = pickle.load(segmentation_file)['accuracies']
     with open(f'{attributes_file_name}.pt', 'rb') as attributes_file:
@@ -108,6 +145,17 @@ def compare_model_accuracies(segmentation_file_name: str, attributes_file_name: 
     perform_statistical_tests(segmentation_accuracies, attributes_accuracies, multi_accuracies)
 
 def perform_statistical_tests(segmentation_accuracies: List[int], attributes_accuracies: List[int], multi_accuracies: List[int]):
+    ''' Performs statistical tests between the multi model and individual models to see if there is any significant difference
+
+    Parameters
+    ----------
+    segmentation_accuracies: List[int]
+        The list containing all the segmentation model accuracies
+    attributes_accuracies: List[int]
+        The list containing all the attributes model accuracies
+    multi_accuracies: List[int]
+        The list containing all the multi model accuracies
+    '''
     segmentation_u, segmentation_p = mannwhitneyu([item[0] for item in multi_accuracies], segmentation_accuracies)
     print(f'Segmentation U-Value: {segmentation_u} , P-Value: {segmentation_p:.10f}')
 
