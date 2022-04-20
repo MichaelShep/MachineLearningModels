@@ -56,7 +56,7 @@ def display_data_element(input_image: torch.Tensor, output_masks: torch.Tensor, 
 
     for i in range(len(output_masks)):
         fig.add_subplot(2, len(output_masks) + 1, i + 1 + row + ((row - 1) * len(output_masks)))
-        plt.imshow(output_masks[i].detach().unsqueeze(0).permute(1, 2, 0))
+        plt.imshow(output_masks[i].detach().unsqueeze(0).permute(1, 2, 0), cmap="gray")
         plt.axis('off')
 
 def create_conv_layer(in_chan: int, out_chan: int, device: str = 'cpu', kernal_size=3, stride=1, padding=1) -> nn.Conv2d:
