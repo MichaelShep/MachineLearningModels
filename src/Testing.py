@@ -6,6 +6,7 @@ import random
 import matplotlib.pyplot as plt
 from typing import List
 from scipy.stats import mannwhitneyu
+import numpy
 
 from CelebADataset import CelebADataset
 from Networks.NetworkType import NetworkType
@@ -89,59 +90,48 @@ def evaluate_model_accuracy(model: nn.Module, network_type: NetworkType,
             model_predictions = model_predictions[1]
     model_predictions = threshold_outputs(network_type, model_predictions, threshold_level)
 
-    #Keeps track of the prediction variables for the attribute output
-    correct_predictions = 0
-    total_predictions = 0
     
-    #Keeps track of the prediction variables for the segmentation output
+    #Keeps track of the prediction variables
     total_intersection_over_union = 0
     total_output_masks = 0
-    for i in range(len(model_predictions)):
-        if network_type == NetworkType.ATTRIBUTE:
+
+    if network_type == NetworkType.ATTRIBUTE:
+        total_intersection_over_union += compute_intersection_over_union(model_predictions.to('cpu'), output_data.to('cpu'))
+    if network_type == NetworkType.SEGMENTATION:
+        for i in range(len(model_predictions)):
             for j in range(len(model_predictions[i])):
-                if model_predictions[i][j] == output_data[i][j]:
-                    correct_predictions += 1
-                total_predictions += 1
-        if network_type == NetworkType.SEGMENTATION:
-            for j in range(len(model_predictions[i])):
-                total_intersection_over_union += compute_intersection_over_union(model_predictions[i][j], output_data[i][j])
+                total_intersection_over_union += compute_intersection_over_union(model_predictions[i][j].to('cpu'), output_data[i][j].to('cpu'))
                 total_output_masks += 1
   
     if network_type == NetworkType.ATTRIBUTE:
-        return correct_predictions / total_predictions
+        return total_intersection_over_union
     return total_intersection_over_union / total_output_masks
 
-def compute_intersection_over_union(predicted_mask: torch.Tensor, actual_mask: torch.Tensor) -> float:
-    ''' Computes the intersection over union metric for a predicted mask and actual mask - used for evaulating segmentation output
-    Only looks at the areas of the image where the output is 1 (displays white when viewing)
+def compute_intersection_over_union(predicted: torch.Tensor, actual: torch.Tensor) -> float:
+    ''' Computes the intersection over union metric for a predicted output and actual output
+    Only looks at the areas of the output where the output is 1 (displays white when viewing)
 
     Parameters
     ----------
-    predicted_mask: torch.Tensor
-        Tensor containing the predicted mask
-    actual_mask: torch.Tensor
-        Tensor containing the actual mask that we are aiming for with our model
+    predicted: torch.Tensor
+        Tensor containing the predicted output
+    actual: torch.Tensor
+        Tensor containing the actual output that we are aiming for with our model
 
     Returns
     -------
     float:
-        The intersection over union of the two masks
+        The intersection over union of the two outputs
     '''
-    common_pixels = 0
-    total_pixels = 0
+    predicted = predicted.numpy()
+    actual = actual.numpy()
 
-    for y in range(len(predicted_mask)):
-        for x in range(len(predicted_mask[y])):
-            if predicted_mask[y][x] == 1 and actual_mask[y][x] == 1:
-                common_pixels += 1
-                total_pixels += 1
-            elif predicted_mask[y][x] == 1 or actual_mask[y][x] == 1:
-                total_pixels += 1
-    
-    #If there are no pixels in the given masks, this means for this was an empty mask that was correctly predicted by our model, so should output 1 (fully accurate)
-    if total_pixels == 0:
+    intersection = numpy.logical_and(predicted, actual)
+    union = numpy.logical_or(predicted, actual)
+
+    if numpy.sum(union) == 0:
         return 1
-    return common_pixels / total_pixels
+    return numpy.sum(intersection) / numpy.sum(union)
 
 def compare_model_accuracies(segmentation_file_name: str, attributes_file_name: str, multi_file_name: str):
     ''' Compares accuracies of all 3 types of model by loading the saved accuracy data from file

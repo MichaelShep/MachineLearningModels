@@ -84,8 +84,8 @@ def start_program():
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
     #Change this to change which sort of model is run and what we are doing with the model
-    network_type = NetworkType.SEGMENTATION
-    run_mode = RunMode.Training
+    network_type = NetworkType.ATTRIBUTE
+    run_mode = RunMode.Comparing
 
     dataset = CelebADataset(dataset_directory, network_type, device)
     #Run the code corrosponding to our model and run mode selection
@@ -95,19 +95,19 @@ def start_program():
             if run_mode == RunMode.Training:
                 train_model(model, dataset, 5, 0.0001, 10, 'segmentation_model', network_type, device, False)
             elif run_mode == RunMode.Testing:
-                test_model(model, dataset, 'segmentation_model', network_type, 10, device)
+                test_model(model, dataset, 'segmentation_model', network_type, 20, device)
         elif network_type == NetworkType.ATTRIBUTE:
             model = AttributesNetwork(dataset.get_num_attributes(), device=device).to(device)
             if run_mode == RunMode.Training:
                 train_model(model, dataset, 20, 0.001, 20, 'attributes_model', network_type, device, False)
             elif run_mode == RunMode.Testing:
-                test_model(model, dataset, 'attributes_model', network_type, 10, device)
+                test_model(model, dataset, 'attributes_model', network_type, 20, device)
         else:
             model = MultiNetwork(dataset.get_num_output_masks(), dataset.get_num_attributes()).to(device)
             if run_mode == RunMode.Training:
                 train_model(model, dataset, 7, 0.0001, 20, 'multi_model', network_type, device, False)
             elif run_mode == RunMode.Testing:
-                test_model(model, dataset, 'multi_model', network_type, 10, device)
+                test_model(model, dataset, 'multi_model', network_type, 20, device)
     else:
         Testing.compare_model_accuracies('accuracies_segmentation', 'accuracies_attribute', 'accuracies_multi')
 
